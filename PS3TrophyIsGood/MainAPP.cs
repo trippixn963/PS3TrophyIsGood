@@ -719,22 +719,34 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Offers to rebuild an imported unlock sequence as realistic nightly play sessions. Trophies are
-        /// placed only inside a fixed overnight window (default 22:00–04:00 — the user's empty slot while
-        /// asleep) across consecutive nights: trophies that popped within BurstGapSeconds stay EXACTLY as
-        /// scraped (stacks / story pops), every other gap becomes a few randomized minutes, and when a
-        /// night's window fills, the rest roll over to the next night. This keeps real burst pacing, puts
-        /// everything at a consistent believable time-of-day (no drift across all 24 hours), and differs
-        /// from the donor so it isn't a 1:1 fingerprint. The platinum's exact gap to its trigger is kept.
+        /// Rebuilds an imported unlock sequence as realistic, human-looking nightly play sessions in the
+        /// user's empty overnight slot — built to look genuine without being a 1:1 clone of the donor:
+        ///  • Trophies sit only inside nightly sessions starting ~10pm (with per-night jitter) and running
+        ///    a randomized 2.5–5 h, so the time-of-day is consistent but not robotic and never bleeds into
+        ///    the daytime hours where the real account is active.
+        ///  • Burst pops (≤60s apart) stay tight stacks but get a 0–2 s nudge so the sub-second pattern
+        ///    isn't bit-identical to the donor.
+        ///  • Every other gap is the donor's gap PLUS a few random minutes (occasionally a longer grind
+        ///    lull) — always a touch SLOWER than the donor (key when donors are speedrunners) and never
+        ///    matching their spacing.
+        ///  • Gaps that won't fit a night roll forward whole nights (the daytime break), sometimes a day
+        ///    off, never landing on a gap shorter than the donor's.
+        ///  • The platinum pops 1–8 s after its trigger trophy (plausible auto-pop, not cloned).
         /// Mutates <paramref name="times"/> in place.
         /// </summary>
         private void MaybeRelocateToNightSessions(List<long> times)
         {
-            const int SessionStartHour = 22; // 10pm — adjust these two to change the nightly window
-            const int SessionEndHour = 4; //     4am (next day)
-            const long BurstGapSeconds = 60; // gaps this small are kept exact (stacks / story pops)
-            const int MinExtraMinutes = 1; //    non-burst gaps get AT LEAST this added on top of the
-            const int MaxExtraMinutes = 10; //   donor's gap, so the user is always slower than the donor
+            const int SessionStartHour = 22; // sessions begin ~10pm — change to move the nightly window
+            const int NightStartJitterMinutes = 45; // actual start spread over [10:00pm, 10:45pm]
+            const int MinSessionMinutes = 150; // each night runs a random 2.5–5 h
+            const int MaxSessionMinutes = 300;
+            const long BurstGapSeconds = 60; // gaps this small are stacks / story pops — kept tight
+            const int MinExtraMinutes = 1; //   non-burst gap = donor's gap + this many minutes (never faster)
+            const int MaxExtraMinutes = 10;
+            const int LullChancePercent = 12; // ~1 in 8 non-burst trophies takes a longer grind / break
+            const int LullMinMinutes = 15;
+            const int LullMaxMinutes = 50;
+            const int DayOffChancePercent = 15; // when rolling nights, sometimes skip an extra day
 
             var nonzero = times.Where(t => t != 0).ToList();
             if (nonzero.Count == 0)
@@ -742,11 +754,11 @@ namespace PS3TrophyIsGood
 
             if (
                 MessageBox.Show(
-                    $"Rebuild this run as nightly play sessions ({SessionStartHour}:00–{SessionEndHour}:00)?\n\n"
-                        + "Trophies are placed only in that overnight slot, across consecutive nights. "
-                        + "Trophies that popped seconds apart stay exact; every other gap is the donor's "
-                        + "gap plus a few random minutes — so your time is always a bit SLOWER than the "
-                        + "donor (vital when they're speedrunners) and never a 1:1 copy.\n\n"
+                    "Rebuild this run as realistic nightly play sessions (~10pm onward, while your account "
+                        + "is otherwise idle)?\n\n"
+                        + "Trophies that popped seconds apart stay tight; every other gap is the donor's "
+                        + "gap plus a few random minutes — always a bit SLOWER than the donor (vital for "
+                        + "speedrun donors) and never a 1:1 copy of their timeline.\n\n"
                         + "Yes = pick the first night.    No = keep the original dates.",
                     "Relocate to night sessions",
                     MessageBoxButtons.YesNo
@@ -770,57 +782,59 @@ namespace PS3TrophyIsGood
             var rand = new Random();
             DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-            // 4am falls on the day after the 10pm start, so the nightly window spans midnight.
-            int sessionLengthMinutes = ((SessionEndHour - SessionStartHour + 24) % 24) * 60;
+            long ToUnix(DateTime dt) => (long)(dt - epoch).TotalSeconds;
+            DateTime BeginNight(DateTime day) =>
+                day.Date.AddHours(SessionStartHour).AddMinutes(rand.Next(0, NightStartJitterMinutes + 1));
 
-            // Each night starts a little after 10pm (small jitter so nights aren't identical).
-            DateTime nightStart = startDate.AddHours(SessionStartHour).AddMinutes(rand.Next(0, 31));
+            DateTime nightStart = BeginNight(startDate);
+            int nightLength = rand.Next(MinSessionMinutes, MaxSessionMinutes + 1);
             DateTime cursor = nightStart;
 
             if (seq.Count > 0)
-                times[seq[0].Key] = (long)(cursor - epoch).TotalSeconds;
+                times[seq[0].Key] = ToUnix(cursor);
 
             for (int k = 1; k < seq.Count; k++)
             {
                 long gap = seq[k].Value - seq[k - 1].Value;
                 if (gap <= BurstGapSeconds)
                 {
-                    // Burst: keep the exact sub-minute offset, never split a stack across nights.
-                    cursor = cursor.AddSeconds(gap);
+                    // Stack / story burst: stay tight, but nudge 0–2 s so it isn't bit-identical to donor.
+                    cursor = cursor.AddSeconds(gap + rand.Next(0, 3));
+                    times[seq[k].Key] = ToUnix(cursor);
+                    continue;
+                }
+
+                // Non-burst: the donor's gap is the floor; add a few minutes (sometimes a longer lull).
+                int extra = rand.Next(MinExtraMinutes, MaxExtraMinutes + 1);
+                if (rand.Next(100) < LullChancePercent)
+                    extra += rand.Next(LullMinMinutes, LullMaxMinutes + 1);
+
+                DateTime candidate = cursor.AddSeconds(gap).AddMinutes(extra).AddSeconds(rand.Next(0, 60));
+
+                if ((candidate - nightStart).TotalMinutes <= nightLength)
+                {
+                    cursor = candidate; // fits tonight
                 }
                 else
                 {
-                    // The donor is often a speedrunner, so the user must never be FASTER: use the donor's
-                    // gap as a floor and add a few random minutes on top (always strictly more).
-                    DateTime candidate = cursor
-                        .AddSeconds(gap)
-                        .AddMinutes(rand.Next(MinExtraMinutes, MaxExtraMinutes + 1))
-                        .AddSeconds(rand.Next(0, 60));
-
-                    if ((candidate - nightStart).TotalMinutes <= sessionLengthMinutes)
+                    // Doesn't fit — roll to a later night (sometimes a day off), never landing on a gap
+                    // shorter than the donor's.
+                    DateTime prev = cursor;
+                    DateTime day = nightStart.Date.AddDays(rand.Next(100) < DayOffChancePercent ? 2 : 1);
+                    nightStart = BeginNight(day);
+                    nightLength = rand.Next(MinSessionMinutes, MaxSessionMinutes + 1);
+                    while ((nightStart - prev).TotalSeconds < gap)
                     {
-                        cursor = candidate; // fits tonight; gap = donor's gap + a few minutes
+                        nightStart = BeginNight(nightStart.Date.AddDays(1));
+                        nightLength = rand.Next(MinSessionMinutes, MaxSessionMinutes + 1);
                     }
-                    else
-                    {
-                        // Doesn't fit tonight — roll forward whole nights (the daytime break) until the
-                        // gap from the previous trophy is at least the donor's, so we're never faster.
-                        DateTime prev = cursor;
-                        do
-                        {
-                            nightStart = nightStart
-                                .Date.AddDays(1)
-                                .AddHours(SessionStartHour)
-                                .AddMinutes(rand.Next(0, 31));
-                        } while ((nightStart - prev).TotalSeconds < gap);
-                        cursor = nightStart;
-                    }
+                    cursor = nightStart;
                 }
-                times[seq[k].Key] = (long)(cursor - epoch).TotalSeconds;
+                times[seq[k].Key] = ToUnix(cursor);
             }
 
-            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so pin
-            // its gap to that trophy exactly as scraped (almost always a burst, so usually already exact).
+            // The platinum (index 0) auto-pops moments after its last required trophy — place it 1–8 s
+            // after its chronological predecessor: plausible, and not a copy of the donor's exact offset.
             if (tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0)
             {
                 long platOrig = original[0];
@@ -833,14 +847,14 @@ namespace PS3TrophyIsGood
                         prevIdx = i;
                     }
                 if (prevIdx >= 0)
-                    times[0] = times[prevIdx] + (platOrig - prevOrig);
+                    times[0] = times[prevIdx] + rand.Next(1, 9);
             }
 
             long resultFirst = times.Where(t => t != 0).DefaultIfEmpty(0).Min();
             long resultLast = times.Where(t => t != 0).DefaultIfEmpty(0).Max();
             MessageBox.Show(
-                $"Rebuilt as nightly sessions ({SessionStartHour}:00–{SessionEndHour}:00); every non-burst "
-                    + "gap is kept at least as long as the donor's.\n\nFirst unlock: "
+                "Rebuilt as nightly sessions — always a touch slower than the donor, never a 1:1 copy.\n\n"
+                    + "First unlock: "
                     + resultFirst.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
                     + "\nLast unlock:  "
                     + resultLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
