@@ -69,6 +69,9 @@ namespace PS3TrophiesIsPerfect.Services
 
         private static string FetchViaFlareSolverr(string targetUrl)
         {
+            // Give an auto-started FlareSolverr time to come up before the first request.
+            Utility.servingReady.WaitOne(TimeSpan.FromSeconds(60));
+
             string jsonPayload =
                 $@"{{ ""cmd"": ""request.get"", ""url"": ""{targetUrl}"", ""maxTimeout"": 60000 }}";
 

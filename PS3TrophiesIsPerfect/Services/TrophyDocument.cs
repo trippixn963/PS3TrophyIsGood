@@ -14,7 +14,7 @@ namespace PS3TrophiesIsPerfect.Services
     /// </summary>
     public sealed class TrophyDocument
     {
-        private const string DefaultProfile = "Default Profile";
+        public const string DefaultProfile = "Default Profile";
 
         private TROPCONF _tconf;
         private TROPTRNS _tpsn;
@@ -47,7 +47,7 @@ namespace PS3TrophiesIsPerfect.Services
             IsOpen = true;
         }
 
-        public void Save()
+        public void Save(string profile = DefaultProfile)
         {
             if (!IsOpen) return;
             _tpsn.Save();
@@ -56,7 +56,7 @@ namespace PS3TrophiesIsPerfect.Services
             try
             {
                 Utility.CopyTrophyData(_pathTemp, encPathTemp, false);
-                Utility.EncryptTrophy(encPathTemp, DefaultProfile);
+                Utility.EncryptTrophy(encPathTemp, profile);
                 Utility.CopyTrophyData(encPathTemp, _path, true);
             }
             finally

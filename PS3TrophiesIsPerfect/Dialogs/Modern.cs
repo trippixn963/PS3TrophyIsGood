@@ -36,6 +36,24 @@ namespace PS3TrophiesIsPerfect.Dialogs
             return r == ContentDialogResult.Primary;
         }
 
+        public enum SaveChoice { Save, Discard, Cancel }
+
+        public static async Task<SaveChoice> SaveDiscardCancel(string message, string title)
+        {
+            var r = await new ContentDialog
+            {
+                Title = title,
+                Content = Body(message),
+                PrimaryButtonText = "Save",
+                SecondaryButtonText = "Don't save",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+            }.ShowAsync();
+            return r == ContentDialogResult.Primary ? SaveChoice.Save
+                 : r == ContentDialogResult.Secondary ? SaveChoice.Discard
+                 : SaveChoice.Cancel;
+        }
+
         public static async Task<string> PromptUrl(string initial = "")
         {
             var box = new TextBox { Text = initial ?? string.Empty };
