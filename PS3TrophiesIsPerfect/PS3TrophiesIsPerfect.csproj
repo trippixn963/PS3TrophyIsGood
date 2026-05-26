@@ -11,6 +11,8 @@
     <LangVersion>latest</LangVersion>
     <!-- For the native folder-browser dialog (System.Windows.Forms.FolderBrowserDialog). -->
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- English-only: skip the dozens of localized satellite resource folders (ModernWpfUI etc.). -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
