@@ -37,19 +37,13 @@
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.closeFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.isRpcs3Format = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.advancedMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.instantPlatinumMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearTrophiesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.setRandomStartTimeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.setRandomEndTimeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripComboBox2 = new System.Windows.Forms.ToolStripComboBox();
-            this.toolStripComboBox1 = new System.Windows.Forms.ToolStripComboBox();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.label1 = new System.Windows.Forms.Label();
@@ -89,8 +83,7 @@
             this.fileMenuItem,
             this.advancedMenuItem,
             this.refreshMenuItem,
-            this.toolStripComboBox2,
-            this.toolStripComboBox1});
+            this.toolStripComboBox2});
             resources.ApplyResources(this.menuStrip1, "menuStrip1");
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Click += new System.EventHandler(this.menuStrip1_Click);
@@ -101,7 +94,6 @@
             this.openMenuItem,
             this.saveMenuItem,
             this.closeFileMenuItem,
-            this.isRpcs3Format,
             this.toolStripSeparator1,
             this.exitMenuItem});
             this.fileMenuItem.Name = "檔案ToolStripMenuItem";
@@ -124,13 +116,7 @@
             this.closeFileMenuItem.Name = "關閉檔案CToolStripMenuItem";
             resources.ApplyResources(this.closeFileMenuItem, "關閉檔案CToolStripMenuItem");
             this.closeFileMenuItem.Click += new System.EventHandler(this.closeFileMenuItem_Click);
-            // 
-            // isRpcs3Format
-            // 
-            this.isRpcs3Format.Name = "isRpcs3Format";
-            resources.ApplyResources(this.isRpcs3Format, "isRpcs3Format");
-            this.isRpcs3Format.Click += new System.EventHandler(this.toggleRPCS3TrophyFormatToolStripMenuItem_Click);
-            // 
+            //
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
@@ -145,21 +131,11 @@
             // advancedMenuItem
             // 
             this.advancedMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.instantPlatinumMenuItem,
             this.clearTrophiesMenuItem,
-            this.toolStripMenuItem1,
-            this.toolStripSeparator2,
-            this.setRandomStartTimeToolStripMenuItem,
-            this.setRandomEndTimeToolStripMenuItem});
+            this.toolStripMenuItem1});
             resources.ApplyResources(this.advancedMenuItem, "進階ToolStripMenuItem");
             this.advancedMenuItem.Name = "進階ToolStripMenuItem";
-            // 
-            // instantPlatinumMenuItem
-            // 
-            this.instantPlatinumMenuItem.Name = "瞬間白金ToolStripMenuItem";
-            resources.ApplyResources(this.instantPlatinumMenuItem, "瞬間白金ToolStripMenuItem");
-            this.instantPlatinumMenuItem.Click += new System.EventHandler(this.instantPlatinumMenuItem_Click);
-            // 
+            //
             // clearTrophiesMenuItem
             // 
             this.clearTrophiesMenuItem.Name = "清除獎杯ToolStripMenuItem";
@@ -171,24 +147,7 @@
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
             resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
             this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
-            // 
-            // toolStripSeparator2
-            // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
-            // 
-            // setRandomStartTimeToolStripMenuItem
-            // 
-            this.setRandomStartTimeToolStripMenuItem.Name = "setRandomStartTimeToolStripMenuItem";
-            resources.ApplyResources(this.setRandomStartTimeToolStripMenuItem, "setRandomStartTimeToolStripMenuItem");
-            this.setRandomStartTimeToolStripMenuItem.Click += new System.EventHandler(this.setRandomStartTimeToolStripMenuItem_Click);
-            // 
-            // setRandomEndTimeToolStripMenuItem
-            // 
-            this.setRandomEndTimeToolStripMenuItem.Name = "setRandomEndTimeToolStripMenuItem";
-            resources.ApplyResources(this.setRandomEndTimeToolStripMenuItem, "setRandomEndTimeToolStripMenuItem");
-            this.setRandomEndTimeToolStripMenuItem.Click += new System.EventHandler(this.setRandomEndTimeToolStripMenuItem_Click);
-            // 
+            //
             // refreshMenuItem
             // 
             resources.ApplyResources(this.refreshMenuItem, "重新整理ToolStripMenuItem");
@@ -199,17 +158,7 @@
             // 
             this.toolStripComboBox2.Name = "toolStripComboBox2";
             resources.ApplyResources(this.toolStripComboBox2, "toolStripComboBox2");
-            // 
-            // toolStripComboBox1
-            // 
-            this.toolStripComboBox1.Items.AddRange(new object[] {
-            resources.GetString("toolStripComboBox1.Items"),
-            resources.GetString("toolStripComboBox1.Items1"),
-            resources.GetString("toolStripComboBox1.Items2")});
-            this.toolStripComboBox1.Name = "toolStripComboBox1";
-            resources.ApplyResources(this.toolStripComboBox1, "toolStripComboBox1");
-            this.toolStripComboBox1.SelectedIndexChanged += new System.EventHandler(this.toolStripComboBox1_SelectedIndexChanged);
-            // 
+            //
             // dateTimePicker1
             // 
             resources.ApplyResources(this.dateTimePicker1, "dateTimePicker1");
@@ -361,17 +310,11 @@
         private System.Windows.Forms.ToolStripMenuItem refreshMenuItem;
         private System.Windows.Forms.ColumnHeader columnHeader7;
         private System.Windows.Forms.ToolStripMenuItem closeFileMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem instantPlatinumMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearTrophiesMenuItem;
-        private System.Windows.Forms.ToolStripComboBox toolStripComboBox1;
-        private System.Windows.Forms.ToolStripMenuItem setRandomStartTimeToolStripMenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
-        private System.Windows.Forms.ToolStripMenuItem setRandomEndTimeToolStripMenuItem;
         private System.Windows.Forms.ColumnHeader columnHeader8;
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
         private System.Windows.Forms.ToolStripComboBox toolStripComboBox2;
-        private System.Windows.Forms.ToolStripMenuItem isRpcs3Format;
     }
 }
 

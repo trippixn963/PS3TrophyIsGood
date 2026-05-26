@@ -28,7 +28,6 @@ namespace PS3TrophyIsGood
 
         DateTime ps3Time = new DateTime(MINIMUM_POSSIBLE_DATE);
         DateTime lastSyncTrophyTime = new DateTime(MINIMUM_POSSIBLE_DATE);
-        DateTime randomEndTime = DateTime.Now;
 
         bool isOpen = false;
         int baseGameCount;
@@ -89,9 +88,6 @@ namespace PS3TrophyIsGood
             label1.Visible = label2.Visible = label3.Visible = label4.Visible = false;
             progressBar1.Visible = false;
             linkLabel1.Visible = false;
-            toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
-            toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
-            toolStripComboBox1.SelectedIndexChanged += toolStripComboBox1_SelectedIndexChanged;
             Directory.CreateDirectory("profiles");
             var profiles = new DirectoryInfo("profiles").GetFiles("*.sfo").Select(p => p.Name).ToArray();
             toolStripComboBox2.Items.Add("Default Profile");
@@ -472,7 +468,7 @@ namespace PS3TrophyIsGood
 
         private bool IsTrophyGot(int trophyID)
         {
-            return (!isRpcs3Format.Checked && tpsn[trophyID].HasValue) || tusr.trophyTimeInfoTable[trophyID].IsGet;
+            return tpsn[trophyID].HasValue || tusr.trophyTimeInfoTable[trophyID].IsGet;
         }
 
         private int GetCountBaseTrophiesGot()
@@ -570,7 +566,7 @@ namespace PS3TrophyIsGood
             { // only un-synced trophies can be edited
                 UI.Dialog.Show(Properties.strings.SyncedTrophyCanNotEdit);
             }
-            else if (tpsn[trophyID].HasValue || (isRpcs3Format.Checked && IsTrophyGot(trophyID)))
+            else if (tpsn[trophyID].HasValue)
             {
                 DeleteTrophy(trophyID, lvi);
             }
@@ -622,9 +618,9 @@ namespace PS3TrophyIsGood
                 path = path_in;
                 pathTemp = Utility.CopyTrophyDirToTemp(path_in);
                 Utility.DecryptTrophy(pathTemp);
-                tconf = new TROPCONF(pathTemp, isRpcs3Format.Checked);
-                tpsn = new TROPTRNS(pathTemp, isRpcs3Format.Checked);
-                tusr = new TROPUSR(pathTemp, isRpcs3Format.Checked);
+                tconf = new TROPCONF(pathTemp, false);
+                tpsn = new TROPTRNS(pathTemp, false);
+                tusr = new TROPUSR(pathTemp, false);
 
                 lastSyncTrophyTime = tusr.LastSyncTime;
                 if (DateTime.Compare(tpsn.LastSyncTime, tusr.LastSyncTime) > 0)
@@ -730,40 +726,6 @@ namespace PS3TrophyIsGood
             StopFlareSolverr();
         }
 
-        private void instantPlatinumMenuItem_Click(object sender, EventArgs e)
-        {
-            Random rand = new Random((int)DateTime.Now.Ticks);
-            int i;
-
-            //Base game
-            for (i = 1; i < tusr.trophyTimeInfoTable.Count && tconf[i].gid == 0; i++)
-            {
-                if (!IsTrophyGot(i))
-                {
-                    tusr.UnlockTrophy(i, new DateTime(Utility.LongRandom(ps3Time.Ticks, randomEndTime.Ticks, rand)));
-                    tpsn.PutTrophy(i, tusr.trophyTypeTable[i].Type, new DateTime(Utility.LongRandom(ps3Time.Ticks, randomEndTime.Ticks, rand)));
-                }
-            }
-            //Platinium game
-            if (!IsTrophyGot(0))
-            {
-                tusr.UnlockTrophy(0, LastTrophyTime().AddSeconds(1));
-                tpsn.PutTrophy(0, tusr.trophyTypeTable[0].Type, LastTrophyTime().AddSeconds(1));
-            }
-
-            //DLC 
-            for (; i < tusr.trophyTimeInfoTable.Count; i++)
-            {
-                if (!IsTrophyGot(i))
-                {
-                    tusr.UnlockTrophy(i, new DateTime(Utility.LongRandom(ps3Time.Ticks, randomEndTime.Ticks, rand)));
-                    tpsn.PutTrophy(i, tusr.trophyTypeTable[i].Type, new DateTime(Utility.LongRandom(ps3Time.Ticks, randomEndTime.Ticks, rand)));
-                }
-            }
-            haveBeenEdited = true;
-            RefreshComponents();
-        }
-
         private void clearTrophiesMenuItem_Click(object sender, EventArgs e)
         {
             TROPTRNS.TrophyInfo? ti = tpsn.PopTrophy();
@@ -774,31 +736,6 @@ namespace PS3TrophyIsGood
             }
             haveBeenEdited = true;
             RefreshComponents();
-        }
-
-        private void toolStripComboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            Properties.Settings.Default.Language = toolStripComboBox1.SelectedIndex;
-            Properties.Settings.Default.Save();
-            UI.Dialog.Show(Properties.strings.RestartProgram);
-        }
-
-        private void setRandomStartTimeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            dtpfForInstant.Title.Text = Properties.strings.RandomStartTime;
-            if (dtpfForInstant.ShowDialog() == DialogResult.OK)
-            {
-                ps3Time = dtpfForInstant.dateTimePicker1.Value;
-            }
-        }
-
-        private void setRandomEndTimeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            dtpfForInstant.Title.Text = Properties.strings.RandomEndTime;
-            if (dtpfForInstant.ShowDialog() == DialogResult.OK)
-            {
-                randomEndTime = dtpfForInstant.dateTimePicker1.Value;
-            }
         }
 
         /// <summary>
@@ -1115,10 +1052,6 @@ namespace PS3TrophyIsGood
         {
             if (listViewEx1.IsEditing)
                 listViewEx1.EndEditing(true);
-        }
-        private void toggleRPCS3TrophyFormatToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            isRpcs3Format.Checked = !isRpcs3Format.Checked;
         }
 
         #region ListView column sorting and color legend (UI enhancements)
@@ -1444,19 +1377,7 @@ namespace PS3TrophyIsGood
                 mi.Click += onClick;
                 return mi;
             }
-            more.DropDownItems.Add(Item("Instant Platinum", instantPlatinumMenuItem_Click));
             more.DropDownItems.Add(Item("Clear Trophies", clearTrophiesMenuItem_Click));
-            more.DropDownItems.Add(new ToolStripSeparator());
-            more.DropDownItems.Add(Item("Set Random Start Time", setRandomStartTimeToolStripMenuItem_Click));
-            more.DropDownItems.Add(Item("Set Random End Time", setRandomEndTimeToolStripMenuItem_Click));
-            more.DropDownItems.Add(new ToolStripSeparator());
-            var rpcs3Item = new ToolStripMenuItem("RPCS3 Trophy Format") { Checked = isRpcs3Format.Checked };
-            rpcs3Item.Click += (s, e) =>
-            {
-                toggleRPCS3TrophyFormatToolStripMenuItem_Click(s, e);
-                rpcs3Item.Checked = isRpcs3Format.Checked;
-            };
-            more.DropDownItems.Add(rpcs3Item);
             more.DropDownItems.Add(new ToolStripSeparator());
             more.DropDownItems.Add(Item("Close File", closeFileMenuItem_Click));
             more.DropDownItems.Add(Item("View on GitHub", (s, e) => linkLabel1_LinkClicked(s, null)));
@@ -1466,12 +1387,9 @@ namespace PS3TrophyIsGood
             ((ToolStripDropDownMenu)more.DropDown).Renderer = new UI.DarkToolStripRenderer();
             toolbar.Items.Add(more);
 
-            // Move the profile + language pickers onto the toolbar, right-aligned.
+            // Move the profile picker onto the toolbar, right-aligned.
             menuStrip1.Items.Remove(toolStripComboBox2);
-            menuStrip1.Items.Remove(toolStripComboBox1);
-            toolStripComboBox1.Alignment = ToolStripItemAlignment.Right;
             toolStripComboBox2.Alignment = ToolStripItemAlignment.Right;
-            toolbar.Items.Add(toolStripComboBox1);
             toolbar.Items.Add(toolStripComboBox2);
 
             // Search / filter box (right-aligned, with a search glyph).
