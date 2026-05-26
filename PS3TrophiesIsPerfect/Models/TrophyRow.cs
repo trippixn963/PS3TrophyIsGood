@@ -25,6 +25,27 @@ namespace PS3TrophiesIsPerfect.Models
         public string GotText => Got ? "Yes" : "No";
         public string SyncedText => Synced ? "Yes" : "No";
 
+        /// <summary>
+        /// Trophy-type badge (the PSNProfiles platinum/gold/silver/bronze PNGs). Used as the row image
+        /// until a real game folder is loaded, at which point the per-trophy TROPxxx.PNG artwork replaces it.
+        /// </summary>
+        public string TypeIcon
+        {
+            get
+            {
+                string name;
+                switch (Type)
+                {
+                    case "P": name = "plat"; break;
+                    case "G": name = "gold"; break;
+                    case "S": name = "silver"; break;
+                    case "B": name = "bronze"; break;
+                    default: return null;
+                }
+                return "pack://application:,,,/Assets/TrophyTypes/" + name + ".png";
+            }
+        }
+
         public Brush TypeBrush
         {
             get

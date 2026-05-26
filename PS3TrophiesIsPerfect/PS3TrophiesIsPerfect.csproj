@@ -20,6 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Trophy-type icons scraped from PSNProfiles; embedded so they load via pack URIs. -->
+    <None Remove="Assets\TrophyTypes\*.png" />
+    <Resource Include="Assets\TrophyTypes\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- FROZEN CORE: reference the prebuilt save-data DLLs directly so they are never recompiled. -->
     <Reference Include="TROPHYParser">
       <HintPath>..\TROPHYParser\TROPHYParser\bin\Debug\TROPHYParser.exe</HintPath>
