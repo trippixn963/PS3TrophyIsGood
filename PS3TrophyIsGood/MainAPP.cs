@@ -439,7 +439,9 @@ namespace PS3TrophyIsGood
             {
                 DateTime selectedDate = Convert.ToDateTime(e.DisplayText);
                 var trophyID = e.Item.ImageIndex;
-                ListViewItem lvi = ((ListView)sender).SelectedItems[0];
+                // Use the row being edited, not SelectedItems[0]: the selection can be empty here when
+                // the edit ends because focus left the list (e.g. clicking a column header to sort).
+                ListViewItem lvi = e.Item;
                 bool trophyChanged;
                 if (tpsn[trophyID].HasValue)
                 {
@@ -459,6 +461,8 @@ namespace PS3TrophyIsGood
 
         private void listViewEx1_DoubleClick(object sender, EventArgs e)
         {
+            if (((ListView)sender).SelectedItems.Count == 0)
+                return; // double-clicked empty space — nothing to edit
             int trophyID = ((ListView)sender).SelectedItems[0].ImageIndex;// Note: the ListView ImageIndex doubles as the trophy ID (e.g. Platinum = 0, 1...)
             ListViewItem lvi = ((ListView)sender).SelectedItems[0];
             if (IsTrophySync(trophyID))
