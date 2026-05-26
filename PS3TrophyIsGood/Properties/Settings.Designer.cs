@@ -34,5 +34,17 @@ namespace PS3TrophyIsGood.Properties {
                 this["Language"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastOpenedPath {
+            get {
+                return ((string)(this["LastOpenedPath"]));
+            }
+            set {
+                this["LastOpenedPath"] = value;
+            }
+        }
     }
 }

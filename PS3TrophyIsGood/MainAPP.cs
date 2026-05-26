@@ -67,6 +67,19 @@ namespace PS3TrophyIsGood
             dateTimePicker1.CustomFormat = Properties.strings.DateFormatString;
             copyFrom = new CopyFrom();
             StartFlareSolverr();
+
+            // QoL: re-open the folder that was open at last exit, if it still exists.
+            string lastPath = Properties.Settings.Default.LastOpenedPath;
+            if (!string.IsNullOrEmpty(lastPath) && Directory.Exists(lastPath))
+            {
+                OpenFile(lastPath);
+                if (!isOpen)
+                {
+                    // Folder exists but no longer opens as trophy data — forget it so it won't retry.
+                    Properties.Settings.Default.LastOpenedPath = string.Empty;
+                    Properties.Settings.Default.Save();
+                }
+            }
         }
 
         /// <summary>
@@ -476,7 +489,12 @@ namespace PS3TrophyIsGood
 
         private void closeFileMenuItem_Click(object sender, EventArgs e)
         {
-            CloseFile();
+            if (CloseFile())
+            {
+                // Explicit close means "forget it" — don't auto-reopen this folder next launch.
+                Properties.Settings.Default.LastOpenedPath = string.Empty;
+                Properties.Settings.Default.Save();
+            }
         }
 
         private DateTime LastTrophyTime()
@@ -515,6 +533,10 @@ namespace PS3TrophyIsGood
                 isOpen = true;
                 refreshMenuItem.Enabled = true;
                 advancedMenuItem.Enabled = true;
+
+                // Remember this folder so it can be re-opened automatically on the next launch.
+                Properties.Settings.Default.LastOpenedPath = path;
+                Properties.Settings.Default.Save();
             }
             catch (FileNotFoundException ex)
             {
