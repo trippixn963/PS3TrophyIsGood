@@ -96,11 +96,6 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\strings.pt-BR.Designer.cs">
-      <DependentUpon>strings.pt-BR.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-    </Compile>
     <Compile Include="Properties\strings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -111,45 +106,19 @@
     <Compile Include="UI\Dialog.cs" />
     <Compile Include="UI\RingControl.cs" />
     <Compile Include="Utility.cs" />
-    <EmbeddedResource Include="CopyFrom.pt-BR.resx">
-      <DependentUpon>CopyFrom.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="CopyFrom.zh-Hant.resx">
-      <DependentUpon>CopyFrom.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="CopyFrom.resx">
       <DependentUpon>CopyFrom.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="DateTimePickForm.pt-BR.resx">
-      <DependentUpon>DateTimePickForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="DateTimePickForm.resx">
       <DependentUpon>DateTimePickForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DateTimePickForm.zh-Hant.resx">
-      <DependentUpon>DateTimePickForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MainAPP.pt-BR.resx">
-      <DependentUpon>MainAPP.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainAPP.resx">
       <DependentUpon>MainAPP.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="MainAPP.zh-Hant.resx">
-      <DependentUpon>MainAPP.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\strings.pt-BR.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>strings.pt-BR.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\strings.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>strings.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\strings.zh-Hant.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>strings.zh-Hant.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="pfdtool\games.conf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -199,7 +168,7 @@
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.8">
       <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.8 %28x86 和 x64%29</ProductName>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">

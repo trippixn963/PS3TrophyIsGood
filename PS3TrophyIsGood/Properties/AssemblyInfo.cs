@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 
 // General information about an assembly is controlled through the following set of
 // attributes. Change these attribute values to modify the information associated with an assembly.
-[assembly: AssemblyTitle("PS3TrophyIsGood")]
+[assembly: AssemblyTitle("PS3TrophiesIsPerfect")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("PS3TrophyIsGood")]
+[assembly: AssemblyProduct("PS3TrophiesIsPerfect")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

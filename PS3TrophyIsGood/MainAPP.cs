@@ -46,21 +46,8 @@ namespace PS3TrophyIsGood
 
         public MainAPP()
         {
-            CultureInfo curinfo = null;
-            switch (Properties.Settings.Default.Language)
-            {
-                case 0:
-                    curinfo = new CultureInfo("zh-TW");
-                    break;
-                case 2:
-                    curinfo = new CultureInfo("pt-BR");
-                    break;
-                case 1:
-                default:
-                    curinfo = CultureInfo.CreateSpecificCulture("en");
-                    break;
-            }
-
+            // English-only: localization was removed, so pin the culture to en regardless of OS locale.
+            CultureInfo curinfo = CultureInfo.CreateSpecificCulture("en");
             Thread.CurrentThread.CurrentCulture = curinfo;
             Thread.CurrentThread.CurrentUICulture = curinfo;
             InitializeComponent();
@@ -166,7 +153,7 @@ namespace PS3TrophyIsGood
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start("https://github.com/trippixn963/PS3TrophyIsGood");
+            System.Diagnostics.Process.Start("https://github.com/trippixn963/PS3TrophiesIsPerfect");
         }
 
         private void exitMenuItem_Click(object sender, EventArgs e)
