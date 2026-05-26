@@ -719,125 +719,97 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Offers to relocate an imported unlock sequence into a start→end window the user picks, keeping
-        /// the donor's real relative pacing — so the "seconds apart here, hours apart there" pattern that
-        /// makes a run look legit is preserved. Smart hybrid: if the donor's real run fits inside the
-        /// chosen window it's kept exactly (zero distortion, anchored at the start); if it's longer than
-        /// the window the gaps are compressed proportionally to fit. Mutates <paramref name="times"/> in
-        /// place. Used for donor imports (PSNProfiles scrape / JSON) whose timestamps are from older years.
+        /// Offers to rebuild an imported unlock sequence as realistic nightly play sessions. Trophies are
+        /// placed only inside a fixed overnight window (default 22:00–04:00 — the user's empty slot while
+        /// asleep) across consecutive nights: trophies that popped within BurstGapSeconds stay EXACTLY as
+        /// scraped (stacks / story pops), every other gap becomes a few randomized minutes, and when a
+        /// night's window fills, the rest roll over to the next night. This keeps real burst pacing, puts
+        /// everything at a consistent believable time-of-day (no drift across all 24 hours), and differs
+        /// from the donor so it isn't a 1:1 fingerprint. The platinum's exact gap to its trigger is kept.
+        /// Mutates <paramref name="times"/> in place.
         /// </summary>
-        private void MaybeRelocateToWindow(List<long> times)
+        private void MaybeRelocateToNightSessions(List<long> times)
         {
+            const int SessionStartHour = 22; // 10pm — adjust these two to change the nightly window
+            const int SessionEndHour = 4; //     4am (next day)
+            const long BurstGapSeconds = 60; // gaps this small are kept exact (stacks / story pops)
+            const int MinGapMinutes = 2; //      randomized spacing between non-burst trophies
+            const int MaxGapMinutes = 20;
+
             var nonzero = times.Where(t => t != 0).ToList();
             if (nonzero.Count == 0)
                 return;
 
-            long firstUnlock = nonzero.Min();
-            long lastUnlock = nonzero.Max();
-            long donorSpan = lastUnlock - firstUnlock; // seconds the real run actually took
-
             if (
                 MessageBox.Show(
-                    "Relocate this unlock sequence into a date window you choose?\n\n"
-                        + "The donor's real pacing is preserved (short gaps stay short, long gaps stay "
-                        + "long). If your window is shorter than the run, the gaps are compressed to fit.\n\n"
-                        + "The run's real length is "
-                        + FormatSpan(TimeSpan.FromSeconds(donorSpan))
-                        + ".\n\nYes = pick start and end.    No = keep the original dates.",
-                    "Relocate to date window",
+                    $"Rebuild this run as nightly play sessions ({SessionStartHour}:00–{SessionEndHour}:00)?\n\n"
+                        + "Trophies are placed only in that overnight slot, across consecutive nights. "
+                        + "Trophies that popped seconds apart stay exact; the rest get a few randomized "
+                        + "minutes, so it looks legit and doesn't match the donor 1:1.\n\n"
+                        + "Yes = pick the first night.    No = keep the original dates.",
+                    "Relocate to night sessions",
                     MessageBoxButtons.YesNo
                 ) != DialogResult.Yes
             )
                 return;
 
-            // Pick the start (first unlock).
-            dtpfForInstant.Title.Text = "First unlock — start date & time";
+            dtpfForInstant.Title.Text = "First night — start date";
             if (dtpfForInstant.ShowDialog() != DialogResult.OK)
                 return;
-            DateTime startPick = dtpfForInstant.dateTimePicker1.Value;
+            DateTime startDate = dtpfForInstant.dateTimePicker1.Value.Date;
 
-            // Pick the end (last unlock); default it to start + the real run length, so simply clicking
-            // OK keeps the donor's exact gaps with no compression.
-            dtpfForInstant.Title.Text = "Last unlock — end date & time";
-            dtpfForInstant.dateTimePicker1.Value = startPick.AddSeconds(donorSpan);
-            if (dtpfForInstant.ShowDialog() != DialogResult.OK)
-                return;
-            DateTime endPick = dtpfForInstant.dateTimePicker1.Value;
-
-            // 1970-UTC + seconds convention, matching the rest of the app (timezone ignored on purpose).
-            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            long startUnix = (long)(startPick - epoch).TotalSeconds;
-            long endUnix = (long)(endPick - epoch).TotalSeconds;
-            long window = endUnix - startUnix;
-
-            if (window < 0)
-            {
-                MessageBox.Show(
-                    "End is before start — leaving the original dates unchanged.",
-                    "Relocate to date window"
-                );
-                return;
-            }
-
-            // Rebuild the timeline in chronological order. Gaps up to BurstGapSeconds (rapid "burst" pops
-            // — auto-stacks, story trophies firing together) are kept EXACT; only the larger gaps (play
-            // sessions / breaks) absorb the compression needed to fit the window. This keeps the legit
-            // "seconds apart here, hours apart there" texture instead of squashing fast pops into one instant.
-            const long BurstGapSeconds = 60;
-
+            // Earned trophies in chronological order (so burst clusters can be detected).
             var original = new List<long>(times);
-
-            // (trophy index, original unlock time) for earned trophies, in chronological order.
             var seq = new List<KeyValuePair<int, long>>();
             for (int i = 0; i < original.Count; i++)
                 if (original[i] != 0)
                     seq.Add(new KeyValuePair<int, long>(i, original[i]));
             seq.Sort((a, b) => a.Value.CompareTo(b.Value));
 
-            // Split the run's length into "burst" gaps (kept exact) and "large" gaps (scalable).
-            long sumBurst = 0,
-                sumLarge = 0;
+            var rand = new Random();
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            // 4am falls on the day after the 10pm start, so the nightly window spans midnight.
+            int sessionLengthMinutes = ((SessionEndHour - SessionStartHour + 24) % 24) * 60;
+
+            // Each night starts a little after 10pm (small jitter so nights aren't identical).
+            DateTime nightStart = startDate.AddHours(SessionStartHour).AddMinutes(rand.Next(0, 31));
+            DateTime cursor = nightStart;
+            int nights = 1;
+
+            if (seq.Count > 0)
+                times[seq[0].Key] = (long)(cursor - epoch).TotalSeconds;
+
             for (int k = 1; k < seq.Count; k++)
             {
-                long g = seq[k].Value - seq[k - 1].Value;
-                if (g <= BurstGapSeconds)
-                    sumBurst += g;
-                else
-                    sumLarge += g;
-            }
-
-            bool uniform = false;
-            double largeFactor = 1.0,
-                uniformFactor = 1.0;
-            if (donorSpan > window && donorSpan > 0)
-            {
-                long available = window - sumBurst;
-                if (sumLarge <= 0 || available <= 0)
+                long gap = seq[k].Value - seq[k - 1].Value;
+                if (gap <= BurstGapSeconds)
                 {
-                    // Window too tight to keep every burst exact — fall back to compressing everything.
-                    uniform = true;
-                    uniformFactor = (double)window / donorSpan;
+                    // Burst: keep the exact sub-minute offset, never split a stack across nights.
+                    cursor = cursor.AddSeconds(gap);
                 }
                 else
-                    largeFactor = (double)available / sumLarge;
+                {
+                    cursor = cursor
+                        .AddMinutes(rand.Next(MinGapMinutes, MaxGapMinutes + 1))
+                        .AddSeconds(rand.Next(0, 60));
+
+                    // Past tonight's window? Sleep until the next night's session.
+                    if ((cursor - nightStart).TotalMinutes > sessionLengthMinutes)
+                    {
+                        nights++;
+                        nightStart = nightStart
+                            .Date.AddDays(1)
+                            .AddHours(SessionStartHour)
+                            .AddMinutes(rand.Next(0, 31));
+                        cursor = nightStart;
+                    }
+                }
+                times[seq[k].Key] = (long)(cursor - epoch).TotalSeconds;
             }
 
-            long cumulative = startUnix;
-            if (seq.Count > 0)
-                times[seq[0].Key] = cumulative;
-            for (int k = 1; k < seq.Count; k++)
-            {
-                long g = seq[k].Value - seq[k - 1].Value;
-                long newGap = uniform
-                    ? (long)Math.Round(g * uniformFactor)
-                    : (g <= BurstGapSeconds ? g : (long)Math.Round(g * largeFactor));
-                cumulative += newGap;
-                times[seq[k].Key] = cumulative;
-            }
-
-            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so its
-            // gap to the trophy right before it must stay EXACTLY as scraped — guaranteed here even if that
-            // gap happened to exceed the burst threshold.
+            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so pin
+            // its gap to that trophy exactly as scraped (almost always a burst, so usually already exact).
             if (tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0)
             {
                 long platOrig = original[0];
@@ -853,19 +825,14 @@ namespace PS3TrophyIsGood
                     times[0] = times[prevIdx] + (platOrig - prevOrig);
             }
 
+            long resultFirst = times.Where(t => t != 0).DefaultIfEmpty(0).Min();
             long resultLast = times.Where(t => t != 0).DefaultIfEmpty(0).Max();
-            string mode =
-                (donorSpan <= window || donorSpan == 0)
-                    ? "real gaps kept (the run fit the window)"
-                    : uniform
-                        ? $"compressed to {uniformFactor:P0} (window too tight to keep rapid pops exact)"
-                        : $"large gaps compressed to {largeFactor:P0}; rapid pops (≤{BurstGapSeconds}s) kept exact";
             MessageBox.Show(
-                "Sequence relocated — " + mode + ".\n\nFirst unlock: "
-                    + startUnix.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
+                $"Placed across {nights} night(s), {SessionStartHour}:00–{SessionEndHour}:00.\n\nFirst unlock: "
+                    + resultFirst.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
                     + "\nLast unlock:  "
                     + resultLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
-                "Relocate to date window"
+                "Relocate to night sessions"
             );
         }
 
@@ -932,9 +899,9 @@ namespace PS3TrophyIsGood
                         _times = copyFrom.LocalPairs.OrderBy(p => p.Id).Select(p => p.Date).ToList();
                     }
 
-                    // Optionally relocate the donor's unlock sequence into a start→end window you pick,
-                    // preserving real pacing (see MaybeRelocateToWindow).
-                    MaybeRelocateToWindow(_times);
+                    // Optionally rebuild the donor's unlock sequence as nightly play sessions
+                    // (see MaybeRelocateToNightSessions).
+                    MaybeRelocateToNightSessions(_times);
                 }
                 else
                     _times = copyFrom.checkBox1.Checked ? copyFrom.smartCopy().ToList() : copyFrom.copyFrom().ToList();
