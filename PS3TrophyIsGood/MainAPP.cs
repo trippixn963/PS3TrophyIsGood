@@ -697,54 +697,84 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Offers to relocate an imported unlock sequence onto a user-chosen start date while preserving
-        /// the real gaps between unlocks — so unlock order and pacing stay identical, only the calendar
-        /// position moves. Mutates <paramref name="times"/> in place. Used for donor imports (PSNProfiles
-        /// scrape / JSON) whose timestamps are from older years.
+        /// Offers to relocate an imported unlock sequence into a start→end window the user picks, keeping
+        /// the donor's real relative pacing — so the "seconds apart here, hours apart there" pattern that
+        /// makes a run look legit is preserved. Smart hybrid: if the donor's real run fits inside the
+        /// chosen window it's kept exactly (zero distortion, anchored at the start); if it's longer than
+        /// the window the gaps are compressed proportionally to fit. Mutates <paramref name="times"/> in
+        /// place. Used for donor imports (PSNProfiles scrape / JSON) whose timestamps are from older years.
         /// </summary>
-        private void MaybeAnchorToStartDate(List<long> times)
+        private void MaybeRelocateToWindow(List<long> times)
         {
             var nonzero = times.Where(t => t != 0).ToList();
             if (nonzero.Count == 0)
                 return;
 
+            long firstUnlock = nonzero.Min();
+            long lastUnlock = nonzero.Max();
+            long donorSpan = lastUnlock - firstUnlock; // seconds the real run actually took
+
             if (
                 MessageBox.Show(
-                    "Relocate this unlock sequence onto a start date you choose?\n\n"
-                        + "The real time gaps between unlocks are kept — only the calendar dates move "
-                        + "(use this when the donor's run is from older years).\n\n"
-                        + "Yes = pick the first-unlock date.    No = keep the original dates.",
-                    "Anchor to start date",
+                    "Relocate this unlock sequence into a date window you choose?\n\n"
+                        + "The donor's real pacing is preserved (short gaps stay short, long gaps stay "
+                        + "long). If your window is shorter than the run, the gaps are compressed to fit.\n\n"
+                        + "The run's real length is "
+                        + FormatSpan(TimeSpan.FromSeconds(donorSpan))
+                        + ".\n\nYes = pick start and end.    No = keep the original dates.",
+                    "Relocate to date window",
                     MessageBoxButtons.YesNo
                 ) != DialogResult.Yes
             )
                 return;
 
-            dtpfForInstant.Title.Text = "First unlock: start date";
+            // Pick the start (first unlock).
+            dtpfForInstant.Title.Text = "First unlock — start date & time";
             if (dtpfForInstant.ShowDialog() != DialogResult.OK)
                 return;
+            DateTime startPick = dtpfForInstant.dateTimePicker1.Value;
 
-            // Match the unix<->DateTime convention used elsewhere (1970 UTC + seconds; timezone ignored,
-            // which is fine because only the gaps and the chosen anchor matter).
-            long epochAnchor = (long)(
-                dtpfForInstant.dateTimePicker1.Value
-                - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            ).TotalSeconds;
+            // Pick the end (last unlock); default it to start + the real run length, so simply clicking
+            // OK keeps the donor's exact gaps with no compression.
+            dtpfForInstant.Title.Text = "Last unlock — end date & time";
+            dtpfForInstant.dateTimePicker1.Value = startPick.AddSeconds(donorSpan);
+            if (dtpfForInstant.ShowDialog() != DialogResult.OK)
+                return;
+            DateTime endPick = dtpfForInstant.dateTimePicker1.Value;
 
-            long firstUnlock = nonzero.Min();
-            long offset = epochAnchor - firstUnlock;
+            // 1970-UTC + seconds convention, matching the rest of the app (timezone ignored on purpose).
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            long startUnix = (long)(startPick - epoch).TotalSeconds;
+            long endUnix = (long)(endPick - epoch).TotalSeconds;
+            long window = endUnix - startUnix;
+
+            if (window < 0)
+            {
+                MessageBox.Show(
+                    "End is before start — leaving the original dates unchanged.",
+                    "Relocate to date window"
+                );
+                return;
+            }
+
+            // Keep exact gaps if the run fits the window; otherwise compress proportionally to fill it.
+            double factor = (donorSpan == 0 || donorSpan <= window) ? 1.0 : (double)window / donorSpan;
 
             for (int i = 0; i < times.Count; i++)
                 if (times[i] != 0)
-                    times[i] += offset;
+                    times[i] = startUnix + (long)Math.Round((times[i] - firstUnlock) * factor);
 
-            long newLast = nonzero.Max() + offset;
+            long resultLast = startUnix + (long)Math.Round(donorSpan * factor);
+            string mode =
+                factor >= 1.0
+                    ? "real gaps kept (the run fit the window)"
+                    : $"compressed to {factor:P0} of real time to fit the window";
             MessageBox.Show(
-                "Sequence anchored.\n\nFirst unlock: "
-                    + epochAnchor.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
+                "Sequence relocated — " + mode + ".\n\nFirst unlock: "
+                    + startUnix.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
                     + "\nLast unlock:  "
-                    + newLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
-                "Anchor to start date"
+                    + resultLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
+                "Relocate to date window"
             );
         }
 
@@ -811,9 +841,9 @@ namespace PS3TrophyIsGood
                         _times = copyFrom.LocalPairs.OrderBy(p => p.Id).Select(p => p.Date).ToList();
                     }
 
-                    // Optionally relocate the donor's unlock sequence onto a start date you pick,
-                    // keeping the real gaps between unlocks (see MaybeAnchorToStartDate).
-                    MaybeAnchorToStartDate(_times);
+                    // Optionally relocate the donor's unlock sequence into a start→end window you pick,
+                    // preserving real pacing (see MaybeRelocateToWindow).
+                    MaybeRelocateToWindow(_times);
                 }
                 else
                     _times = copyFrom.checkBox1.Checked ? copyFrom.smartCopy().ToList() : copyFrom.copyFrom().ToList();
