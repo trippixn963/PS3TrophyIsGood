@@ -126,8 +126,7 @@ namespace PS3TrophyIsGood
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start("https://github.com/darkautism/PS3TrophyIsGood");
-            System.Diagnostics.Process.Start("https://www.youtube.com/user/TheDarkNachoXD");
+            System.Diagnostics.Process.Start("https://github.com/trippixn963/PS3TrophyIsGood");
         }
 
         private void exitMenuItem_Click(object sender, EventArgs e)
@@ -293,7 +292,7 @@ namespace PS3TrophyIsGood
                 }
                 if (tconf[i].gid == 0)
                 {
-                    lvi.SubItems.Add("BaseGame");
+                    lvi.SubItems.Add("Base Game");
                     baseGameCount = i;
                 }
                 else lvi.SubItems.Add($"DLC{tconf[i].gid}");

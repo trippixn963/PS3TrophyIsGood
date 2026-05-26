@@ -136,7 +136,7 @@
     <value>0</value>
   </data>
   <data name="linkLabel1.Text" xml:space="preserve">
-    <value>Original from https://github.com/darkautism/PS3TrophyIsGood/ new features by DarkNacho</value>
+    <value>github.com/trippixn963/PS3TrophyIsGood</value>
   </data>
   <data name="&gt;&gt;linkLabel1.Name" xml:space="preserve">
     <value>linkLabel1</value>
@@ -220,7 +220,7 @@
     <value>255, 22</value>
   </data>
   <data name="清除獎杯ToolStripMenuItem.Text" xml:space="preserve">
-    <value>Clear the unsynchronized trophy</value>
+    <value>Clear unsynchronized trophies</value>
   </data>
   <data name="toolStripMenuItem1.Size" type="System.Drawing.Size, System.Drawing">
     <value>255, 22</value>
@@ -235,13 +235,13 @@
     <value>255, 22</value>
   </data>
   <data name="setRandomStartTimeToolStripMenuItem.Text" xml:space="preserve">
-    <value>Set random start time</value>
+    <value>Set Random Start Time</value>
   </data>
   <data name="setRandomEndTimeToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>255, 22</value>
   </data>
   <data name="setRandomEndTimeToolStripMenuItem.Text" xml:space="preserve">
-    <value>Set Random end time</value>
+    <value>Set Random End Time</value>
   </data>
   <data name="setRandomEndTimeToolStripMenuItem.Visible" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -355,7 +355,7 @@
     <value>4</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Number of trophy:</value>
+    <value>Number of trophies:</value>
   </data>
   <data name="label1.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
     <value>TopRight</value>
@@ -442,7 +442,7 @@
     <value>7</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>PSN Exp:</value>
+    <value>PSN Experience:</value>
   </data>
   <data name="&gt;&gt;label3.Name" xml:space="preserve">
     <value>label3</value>
@@ -511,10 +511,10 @@
     <value>38</value>
   </data>
   <data name="columnHeader7.Text" xml:space="preserve">
-    <value>IsSync</value>
+    <value>Synced</value>
   </data>
   <data name="columnHeader6.Text" xml:space="preserve">
-    <value>Obtainment Time</value>
+    <value>Time Earned</value>
   </data>
   <data name="columnHeader6.Width" type="System.Int32, mscorlib">
     <value>160</value>
