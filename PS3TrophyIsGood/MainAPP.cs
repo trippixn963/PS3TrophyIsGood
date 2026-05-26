@@ -757,17 +757,65 @@ namespace PS3TrophyIsGood
                 return;
             }
 
-            // Keep exact gaps if the run fits the window; otherwise compress proportionally to fill it.
-            double factor = (donorSpan == 0 || donorSpan <= window) ? 1.0 : (double)window / donorSpan;
+            // Rebuild the timeline in chronological order. Gaps up to BurstGapSeconds (rapid "burst" pops
+            // — auto-stacks, story trophies firing together) are kept EXACT; only the larger gaps (play
+            // sessions / breaks) absorb the compression needed to fit the window. This keeps the legit
+            // "seconds apart here, hours apart there" texture instead of squashing fast pops into one instant.
+            const long BurstGapSeconds = 60;
 
             var original = new List<long>(times);
-            for (int i = 0; i < times.Count; i++)
-                if (original[i] != 0)
-                    times[i] = startUnix + (long)Math.Round((original[i] - firstUnlock) * factor);
 
-            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so the
-            // gap between it and the trophy right before it must stay EXACTLY as scraped — never scaled, or
-            // the platinum would look like it popped impossibly far from its trigger.
+            // (trophy index, original unlock time) for earned trophies, in chronological order.
+            var seq = new List<KeyValuePair<int, long>>();
+            for (int i = 0; i < original.Count; i++)
+                if (original[i] != 0)
+                    seq.Add(new KeyValuePair<int, long>(i, original[i]));
+            seq.Sort((a, b) => a.Value.CompareTo(b.Value));
+
+            // Split the run's length into "burst" gaps (kept exact) and "large" gaps (scalable).
+            long sumBurst = 0,
+                sumLarge = 0;
+            for (int k = 1; k < seq.Count; k++)
+            {
+                long g = seq[k].Value - seq[k - 1].Value;
+                if (g <= BurstGapSeconds)
+                    sumBurst += g;
+                else
+                    sumLarge += g;
+            }
+
+            bool uniform = false;
+            double largeFactor = 1.0,
+                uniformFactor = 1.0;
+            if (donorSpan > window && donorSpan > 0)
+            {
+                long available = window - sumBurst;
+                if (sumLarge <= 0 || available <= 0)
+                {
+                    // Window too tight to keep every burst exact — fall back to compressing everything.
+                    uniform = true;
+                    uniformFactor = (double)window / donorSpan;
+                }
+                else
+                    largeFactor = (double)available / sumLarge;
+            }
+
+            long cumulative = startUnix;
+            if (seq.Count > 0)
+                times[seq[0].Key] = cumulative;
+            for (int k = 1; k < seq.Count; k++)
+            {
+                long g = seq[k].Value - seq[k - 1].Value;
+                long newGap = uniform
+                    ? (long)Math.Round(g * uniformFactor)
+                    : (g <= BurstGapSeconds ? g : (long)Math.Round(g * largeFactor));
+                cumulative += newGap;
+                times[seq[k].Key] = cumulative;
+            }
+
+            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so its
+            // gap to the trophy right before it must stay EXACTLY as scraped — guaranteed here even if that
+            // gap happened to exceed the burst threshold.
             if (tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0)
             {
                 long platOrig = original[0];
@@ -785,9 +833,11 @@ namespace PS3TrophyIsGood
 
             long resultLast = times.Where(t => t != 0).DefaultIfEmpty(0).Max();
             string mode =
-                factor >= 1.0
+                (donorSpan <= window || donorSpan == 0)
                     ? "real gaps kept (the run fit the window)"
-                    : $"compressed to {factor:P0} of real time to fit the window";
+                    : uniform
+                        ? $"compressed to {uniformFactor:P0} (window too tight to keep rapid pops exact)"
+                        : $"large gaps compressed to {largeFactor:P0}; rapid pops (≤{BurstGapSeconds}s) kept exact";
             MessageBox.Show(
                 "Sequence relocated — " + mode + ".\n\nFirst unlock: "
                     + startUnix.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
