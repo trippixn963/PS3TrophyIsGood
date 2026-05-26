@@ -15,15 +15,13 @@ namespace PS3TrophyIsGood
         /// </summary>
         public class Pair
         {
-            public int Id { get; set; }
             public long Date { get; set; }
 
             /// <summary>Trophy display name — used to match the scraped trophy to the loaded game.</summary>
             public string Name { get; set; }
 
-            public Pair(int id, long date)
+            public Pair(long date)
             {
-                Id = id;
                 Date = date;
             }
         }
@@ -142,7 +140,6 @@ namespace PS3TrophyIsGood
             );
 
             var results = new List<Pair>();
-            int id = 0;
             foreach (Match row in rowRegex.Matches(html))
             {
                 string block = row.Groups[1].Value;
@@ -159,7 +156,7 @@ namespace PS3TrophyIsGood
                 if (string.IsNullOrWhiteSpace(name) || !TryParsePsnUnlock(dateText, timeText, out long unix))
                     continue;
 
-                results.Add(new Pair(id++, unix) { Name = name });
+                results.Add(new Pair(unix) { Name = name });
             }
             return results;
         }

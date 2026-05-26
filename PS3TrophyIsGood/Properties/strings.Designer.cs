@@ -61,15 +61,6 @@ namespace PS3TrophyIsGood.Properties {
         }
         
         /// <summary>
-        ///   查詢類似 Can&apos;t find game. 的當地語系化字串。
-        /// </summary>
-        internal static string CantFindGame {
-            get {
-                return ResourceManager.GetString("CantFindGame", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查詢類似 You can&apos;t lock other trophies while platinum is locked. 的當地語系化字串。
         /// </summary>
         internal static string CantLoclPlatinumBeforOther {
@@ -102,33 +93,6 @@ namespace PS3TrophyIsGood.Properties {
         internal static string CloseConfirm {
             get {
                 return ResourceManager.GetString("CloseConfirm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 Copied successfully 的當地語系化字串。
-        /// </summary>
-        internal static string CopiedSuccessfully {
-            get {
-                return ResourceManager.GetString("CopiedSuccessfully", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 Danger 的當地語系化字串。
-        /// </summary>
-        internal static string Danger {
-            get {
-                return ResourceManager.GetString("Danger", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 Instant Platinum&apos;s time will be the same, is easily identify by the PSN, we recommend manually modify time, even so do you wish to continue? 的當地語系化字串。
-        /// </summary>
-        internal static string DangerConfirm {
-            get {
-                return ResourceManager.GetString("DangerConfirm", resourceCulture);
             }
         }
         
@@ -169,15 +133,6 @@ namespace PS3TrophyIsGood.Properties {
         }
         
         /// <summary>
-        ///   查詢類似 &quot;Minimum minutes&quot; can&apos;t be greater than &quot;Maximum minutes&quot;. 的當地語系化字串。
-        /// </summary>
-        internal static string MinCantBeGreaterThanMax {
-            get {
-                return ResourceManager.GetString("MinCantBeGreaterThanMax", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查詢類似 no 的當地語系化字串。
         /// </summary>
         internal static string no {
@@ -192,33 +147,6 @@ namespace PS3TrophyIsGood.Properties {
         internal static string PsnSyncTime {
             get {
                 return ResourceManager.GetString("PsnSyncTime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 RandomEndTime 的當地語系化字串。
-        /// </summary>
-        internal static string RandomEndTime {
-            get {
-                return ResourceManager.GetString("RandomEndTime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 RandomStartTime 的當地語系化字串。
-        /// </summary>
-        internal static string RandomStartTime {
-            get {
-                return ResourceManager.GetString("RandomStartTime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查詢類似 Please restart the program to apply the setting. 的當地語系化字串。
-        /// </summary>
-        internal static string RestartProgram {
-            get {
-                return ResourceManager.GetString("RestartProgram", resourceCulture);
             }
         }
         

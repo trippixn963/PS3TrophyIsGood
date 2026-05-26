@@ -84,10 +84,6 @@ namespace PS3TrophyIsGood
             columnHeader8.TextAlign = HorizontalAlignment.Center; // From
             BuildColorLegend();
             BuildShell();
-            // The old top-corner stat labels, progress bar and link are replaced by the toolbar + hero.
-            label1.Visible = label2.Visible = label3.Visible = label4.Visible = false;
-            progressBar1.Visible = false;
-            linkLabel1.Visible = false;
             Directory.CreateDirectory("profiles");
             var profiles = new DirectoryInfo("profiles").GetFiles("*.sfo").Select(p => p.Name).ToArray();
             toolStripComboBox2.Items.Add("Default Profile");
@@ -114,9 +110,9 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Launches the FlareSolverr proxy used by the URL-scrape import path. FlareSolverr is
-        /// optional: if it isn't present (e.g. the JSON-import path or normal editing is all the
-        /// user needs), startup continues without it instead of crashing.
+        /// Launches the FlareSolverr proxy used by the PSNProfiles scrape import. FlareSolverr is
+        /// optional: if it isn't present (normal editing needs no network access), startup continues
+        /// without it instead of crashing.
         /// </summary>
         private void StartFlareSolverr()
         {
@@ -400,10 +396,6 @@ namespace PS3TrophyIsGood
             listViewEx1.LargeImageList.Images.Clear();
             listViewEx1.LargeImageList.ImageSize = new Size(50, 50);
             this.Text = Application.ProductName;
-            progressBar1.Maximum = 100;
-            progressBar1.Value = 0;
-            label2.Text = "00/00";
-            label4.Text = "000/000";
             if (gameTitle != null)
                 gameTitle.Text = string.Empty;
             if (gameSubtitle != null)
@@ -444,10 +436,6 @@ namespace PS3TrophyIsGood
 
                 if (IsTrophyGot(i)) isGetTrophyNumber++;
             }
-            progressBar1.Maximum = totalGrade;
-            progressBar1.Value = getGrade;
-            label2.Text = isGetTrophyNumber + "/" + tconf.Count;
-            label4.Text = getGrade + "/" + totalGrade;
             this.Text = Application.ProductName + "-[" + tconf.title_name + "]";
 
             int pct = totalGrade > 0 ? (int)System.Math.Round(getGrade * 100.0 / totalGrade) : 0;
@@ -596,15 +584,6 @@ namespace PS3TrophyIsGood
                 Properties.Settings.Default.LastOpenedPath = string.Empty;
                 Properties.Settings.Default.Save();
             }
-        }
-
-        private DateTime LastTrophyTime()
-        {
-            if (DateTime.Compare(tpsn.LastTrophyTime, tusr.LastTrophyTime) > 0)
-            {
-                return tpsn.LastTrophyTime;
-            }
-            return tusr.LastTrophyTime;
         }
 
         private void OpenFile(string path_in)
@@ -1046,12 +1025,6 @@ namespace PS3TrophyIsGood
             {
                 UI.Dialog.Show(ex.Message);
             }
-        }
-
-        private void menuStrip1_Click(object sender, EventArgs e)
-        {
-            if (listViewEx1.IsEditing)
-                listViewEx1.EndEditing(true);
         }
 
         #region ListView column sorting and color legend (UI enhancements)

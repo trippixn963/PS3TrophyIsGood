@@ -123,12 +123,6 @@
   <data name="CloseConfirm" xml:space="preserve">
     <value>檔案尚未儲存，要儲存嗎？</value>
   </data>
-  <data name="Danger" xml:space="preserve">
-    <value>危險</value>
-  </data>
-  <data name="DangerConfirm" xml:space="preserve">
-    <value>瞬間白金的時間將會相同，是很容易被PSN發現的方法，建議自己手動修改時間，即使如此還要繼續嗎？</value>
-  </data>
   <data name="Delete" xml:space="preserve">
     <value>刪除獎杯</value>
   </data>
@@ -150,21 +144,6 @@
   <data name="CantUnloclPlatinumBeforOther" xml:space="preserve">
     <value>你不可以在解鎖其他獎杯前解鎖白金</value>
   </data>
-  <data name="RestartProgram" xml:space="preserve">
-    <value>重新啟動以完成設定。</value>
-  </data>
-  <data name="RandomStartTime" xml:space="preserve">
-    <value>隨機開始時間</value>
-  </data>
-  <data name="RandomEndTime" xml:space="preserve">
-    <value>隨機結束時間</value>
-  </data>
-  <data name="CantFindGame" xml:space="preserve">
-    <value>找不到遊戲。</value>
-  </data>
-  <data name="MinCantBeGreaterThanMax" xml:space="preserve">
-    <value>“最小分鐘數”不能大於“最大分鐘數”。</value>
-  </data>
   <data name="PsnSyncTime" xml:space="preserve">
     <value>與PSN同步的最後一個獎杯的日期如下：{0}。 選擇一個大於此日期的日期。</value>
   </data>
@@ -173,8 +152,5 @@
   </data>
   <data name="FileNotFoundMsg" xml:space="preserve">
     <value>找不到“ {0}”。 請選擇一個有效的獎杯文件夾。</value>
-  </data>
-  <data name="CopiedSuccessfully" xml:space="preserve">
-    <value>獎盃資訊複製成功</value>
   </data>
 </root>

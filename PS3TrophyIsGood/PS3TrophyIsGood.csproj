@@ -106,11 +106,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>strings.resx</DependentUpon>
     </Compile>
-    <Compile Include="Resource1.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resource1.resx</DependentUpon>
-    </Compile>
     <Compile Include="UI\Theme.cs" />
     <Compile Include="UI\DarkToolStripRenderer.cs" />
     <Compile Include="UI\Dialog.cs" />
@@ -155,10 +150,6 @@
     <EmbeddedResource Include="Properties\strings.zh-Hant.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>strings.zh-Hant.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resource1.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resource1.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="pfdtool\games.conf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

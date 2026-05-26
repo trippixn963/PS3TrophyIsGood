@@ -123,12 +123,6 @@
   <data name="CloseConfirm" xml:space="preserve">
     <value>The file has not been saved, save it?</value>
   </data>
-  <data name="Danger" xml:space="preserve">
-    <value>Danger</value>
-  </data>
-  <data name="DangerConfirm" xml:space="preserve">
-    <value>Instant Platinum sets every trophy to the same time, which PSN can easily flag. Setting times manually is recommended. Continue anyway?</value>
-  </data>
   <data name="Delete" xml:space="preserve">
     <value>Delete Trophy</value>
   </data>
@@ -150,21 +144,6 @@
   <data name="CantUnloclPlatinumBeforOther" xml:space="preserve">
     <value>You can't unlock the platinum while other trophies are still locked.</value>
   </data>
-  <data name="RestartProgram" xml:space="preserve">
-    <value>Please restart the program to apply the setting.</value>
-  </data>
-  <data name="RandomStartTime" xml:space="preserve">
-    <value>Random Start Time</value>
-  </data>
-  <data name="RandomEndTime" xml:space="preserve">
-    <value>Random End Time</value>
-  </data>
-  <data name="CantFindGame" xml:space="preserve">
-    <value>Can't find game.</value>
-  </data>
-  <data name="MinCantBeGreaterThanMax" xml:space="preserve">
-    <value>"Minimum minutes" can't be greater than "Maximum minutes".</value>
-  </data>
   <data name="PsnSyncTime" xml:space="preserve">
     <value>The last trophy synchronized with PSN has the following date: {0}. Select a date greater than this.</value>
   </data>
@@ -173,8 +152,5 @@
   </data>
   <data name="FileNotFoundMsg" xml:space="preserve">
     <value>"{0}" was not found. Please, select a valid trophy folder.</value>
-  </data>
-  <data name="CopiedSuccessfully" xml:space="preserve">
-    <value>Copied successfully</value>
   </data>
 </root>
