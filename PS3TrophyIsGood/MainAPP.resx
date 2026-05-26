@@ -226,7 +226,7 @@
     <value>255, 22</value>
   </data>
   <data name="toolStripMenuItem1.Text" xml:space="preserve">
-    <value>Copy From</value>
+    <value>Copy from PSNProfiles</value>
   </data>
   <data name="toolStripSeparator2.Size" type="System.Drawing.Size, System.Drawing">
     <value>252, 6</value>
