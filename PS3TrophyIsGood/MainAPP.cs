@@ -60,6 +60,11 @@ namespace PS3TrophyIsGood
             listViewEx1.DrawColumnHeader += listViewEx1_DrawColumnHeader;
             listViewEx1.DrawItem += listViewEx1_DrawItem;
             listViewEx1.DrawSubItem += listViewEx1_DrawSubItem;
+            // The list (Dock=Fill) covers the form, so make IT a drop target too — relying on the drop
+            // bubbling up to the form is unreliable. Reuses the form's (sender-agnostic) drag handlers.
+            listViewEx1.AllowDrop = true;
+            listViewEx1.DragEnter += Form1_DragEnter;
+            listViewEx1.DragDrop += Form1_DragDrop;
             BuildColorLegend();
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
