@@ -931,97 +931,83 @@ namespace PS3TrophyIsGood
 
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            if (copyFrom.ShowDialog(this) == DialogResult.OK)
+            if (copyFrom.ShowDialog(this) != DialogResult.OK)
+                return;
+            if (copyFrom.LocalPairs == null || copyFrom.LocalPairs.Count == 0)
+                return;
+
+            // Match the scraped trophies to the loaded game by display name. Names are normalized
+            // (see NormalizeTrophyName: Unicode NFKC, collapsed whitespace, case-insensitive) so cosmetic
+            // differences between PSNProfiles and the game's TROPCONF don't cause misses. Result is a
+            // per-trophy-index array aligned with the trophy table.
+            var trophyIndexByName = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int i = 0; i < tconf.Count; ++i)
             {
-                List<long> _times;
-                if (copyFrom.LocalPairs != null && copyFrom.LocalPairs.Count > 0)
+                string key = NormalizeTrophyName(tconf[i].name);
+                if (key.Length > 0 && !trophyIndexByName.ContainsKey(key))
+                    trophyIndexByName[key] = i;
+            }
+
+            int count = tusr.trophyTimeInfoTable.Count;
+            var _times = Enumerable.Repeat(0L, count).ToList();
+
+            int matched = 0;
+            var unmatched = new List<string>();
+            foreach (var p in copyFrom.LocalPairs)
+            {
+                if (string.IsNullOrWhiteSpace(p.Name))
+                    continue;
+                if (trophyIndexByName.TryGetValue(NormalizeTrophyName(p.Name), out int idx) && idx < count)
                 {
-                    if (copyFrom.LocalPairsAreNameKeyed)
-                    {
-                        // Match imported timestamps to trophies by display name. Names are normalized
-                        // (see NormalizeTrophyName: Unicode NFKC, collapsed whitespace, case-insensitive)
-                        // so cosmetic differences between the JSON and the game's TROPCONF don't cause
-                        // misses. Result is a per-trophy-index array aligned with the trophy table,
-                        // exactly like the Id-keyed path.
-                        var trophyIndexByName = new Dictionary<string, int>(StringComparer.Ordinal);
-                        for (int i = 0; i < tconf.Count; ++i)
-                        {
-                            string key = NormalizeTrophyName(tconf[i].name);
-                            if (key.Length > 0 && !trophyIndexByName.ContainsKey(key))
-                                trophyIndexByName[key] = i;
-                        }
-
-                        int count = tusr.trophyTimeInfoTable.Count;
-                        _times = Enumerable.Repeat(0L, count).ToList();
-
-                        int matched = 0;
-                        var unmatched = new List<string>();
-                        foreach (var p in copyFrom.LocalPairs)
-                        {
-                            if (string.IsNullOrWhiteSpace(p.Name))
-                                continue;
-                            if (trophyIndexByName.TryGetValue(NormalizeTrophyName(p.Name), out int idx) && idx < count)
-                            {
-                                _times[idx] = p.Date;
-                                matched++;
-                            }
-                            else
-                            {
-                                unmatched.Add(p.Name);
-                            }
-                        }
-
-                        // Surface anything that didn't match instead of dropping it silently, so the
-                        // user can fix the JSON rather than wonder why a trophy stayed locked.
-                        if (unmatched.Count > 0)
-                        {
-                            const int maxShown = 15;
-                            string list = string.Join("\n  • ", unmatched.Take(maxShown));
-                            if (unmatched.Count > maxShown)
-                                list += $"\n  … and {unmatched.Count - maxShown} more";
-                            MessageBox.Show(
-                                $"Matched {matched} of {matched + unmatched.Count} entries by name.\n\n"
-                                    + "These names matched no trophy and were skipped:\n  • "
-                                    + list,
-                                "Trophy name import"
-                            );
-                        }
-                    }
-                    else
-                    {
-                        _times = copyFrom.LocalPairs.OrderBy(p => p.Id).Select(p => p.Date).ToList();
-                    }
-
-                    // Optionally rebuild the donor's unlock sequence as nightly play sessions
-                    // (see MaybeRelocateToNightSessions).
-                    MaybeRelocateToNightSessions(_times);
+                    _times[idx] = p.Date;
+                    matched++;
                 }
                 else
-                    _times = copyFrom.checkBox1.Checked ? copyFrom.smartCopy().ToList() : copyFrom.copyFrom().ToList();
-                // Clear stale rows first (sometimes the grid doesn't update otherwise), but only when
-                // we actually have unlocks to apply — a no-match name file must not wipe everything.
-                if (_times.Any(t => t != 0)) clearTrophiesMenuItem_Click(sender, e);
-                try
                 {
-                    for (int i = 0; i < tusr.trophyTimeInfoTable.Count; ++i)
-                    {
-
-                        if (!tpsn[i].HasValue && _times[i] != 0)
-                        {
-                            var time = _times[i].TimeStampToDateTime();
-                            tusr.UnlockTrophy(i, time);
-                            tpsn.PutTrophy(i, tusr.trophyTypeTable[i].Type, time);
-                        }
-                    }
-                    haveBeenEdited = true;
-                    RefreshComponents();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
+                    unmatched.Add(p.Name);
                 }
             }
 
+            // Surface anything that didn't match instead of dropping it silently.
+            if (unmatched.Count > 0)
+            {
+                const int maxShown = 15;
+                string list = string.Join("\n  • ", unmatched.Take(maxShown));
+                if (unmatched.Count > maxShown)
+                    list += $"\n  … and {unmatched.Count - maxShown} more";
+                MessageBox.Show(
+                    $"Matched {matched} of {matched + unmatched.Count} scraped trophies by name.\n\n"
+                        + "These names matched no trophy and were skipped:\n  • "
+                        + list,
+                    "PSNProfiles import"
+                );
+            }
+
+            // Rebuild the unlock sequence as realistic nightly play sessions (see MaybeRelocateToNightSessions).
+            MaybeRelocateToNightSessions(_times);
+
+            // Clear stale rows first (sometimes the grid doesn't update otherwise), but only when we
+            // actually have unlocks to apply — a no-match scrape must not wipe everything.
+            if (_times.Any(t => t != 0))
+                clearTrophiesMenuItem_Click(sender, e);
+            try
+            {
+                for (int i = 0; i < tusr.trophyTimeInfoTable.Count; ++i)
+                {
+                    if (!tpsn[i].HasValue && _times[i] != 0)
+                    {
+                        var time = _times[i].TimeStampToDateTime();
+                        tusr.UnlockTrophy(i, time);
+                        tpsn.PutTrophy(i, tusr.trophyTypeTable[i].Type, time);
+                    }
+                }
+                haveBeenEdited = true;
+                RefreshComponents();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void menuStrip1_Click(object sender, EventArgs e)
