@@ -770,6 +770,8 @@ namespace PS3TrophyIsGood
             if (dtpfForInstant.ShowDialog() != DialogResult.OK)
                 return;
             DateTime startDate = dtpfForInstant.dateTimePicker1.Value.Date;
+            if (startDate > DateTime.Today)
+                startDate = DateTime.Today; // a run can't start in the future
 
             // Earned trophies in chronological order.
             var original = new List<long>(times);
@@ -889,6 +891,19 @@ namespace PS3TrophyIsGood
                     }
                 if (prevIdx >= 0)
                     times[0] = times[prevIdx] + (platOrig - prevOrig);
+            }
+
+            // HARD RULE: nothing may ever be dated after "now". Syncing a future-dated trophy to PSN gets
+            // the account flagged and removed from leaderboards. As a final guarantee, pull the whole run
+            // back whole days (preserving the night times) until the latest pop is at/just before now.
+            long nowUnix = ToUnix(DateTime.Now);
+            long maxT = times.Where(t => t != 0).Max();
+            while (maxT > nowUnix)
+            {
+                for (int i = 0; i < times.Count; i++)
+                    if (times[i] != 0)
+                        times[i] -= 24L * 3600L;
+                maxT -= 24L * 3600L;
             }
 
             long firstUnlock = times.Where(t => t != 0).Min();
