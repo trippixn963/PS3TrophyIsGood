@@ -697,6 +697,58 @@ namespace PS3TrophyIsGood
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Offers to relocate an imported unlock sequence onto a user-chosen start date while preserving
+        /// the real gaps between unlocks — so unlock order and pacing stay identical, only the calendar
+        /// position moves. Mutates <paramref name="times"/> in place. Used for donor imports (PSNProfiles
+        /// scrape / JSON) whose timestamps are from older years.
+        /// </summary>
+        private void MaybeAnchorToStartDate(List<long> times)
+        {
+            var nonzero = times.Where(t => t != 0).ToList();
+            if (nonzero.Count == 0)
+                return;
+
+            if (
+                MessageBox.Show(
+                    "Relocate this unlock sequence onto a start date you choose?\n\n"
+                        + "The real time gaps between unlocks are kept — only the calendar dates move "
+                        + "(use this when the donor's run is from older years).\n\n"
+                        + "Yes = pick the first-unlock date.    No = keep the original dates.",
+                    "Anchor to start date",
+                    MessageBoxButtons.YesNo
+                ) != DialogResult.Yes
+            )
+                return;
+
+            dtpfForInstant.Title.Text = "First unlock: start date";
+            if (dtpfForInstant.ShowDialog() != DialogResult.OK)
+                return;
+
+            // Match the unix<->DateTime convention used elsewhere (1970 UTC + seconds; timezone ignored,
+            // which is fine because only the gaps and the chosen anchor matter).
+            long epochAnchor = (long)(
+                dtpfForInstant.dateTimePicker1.Value
+                - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            ).TotalSeconds;
+
+            long firstUnlock = nonzero.Min();
+            long offset = epochAnchor - firstUnlock;
+
+            for (int i = 0; i < times.Count; i++)
+                if (times[i] != 0)
+                    times[i] += offset;
+
+            long newLast = nonzero.Max() + offset;
+            MessageBox.Show(
+                "Sequence anchored.\n\nFirst unlock: "
+                    + epochAnchor.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
+                    + "\nLast unlock:  "
+                    + newLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
+                "Anchor to start date"
+            );
+        }
+
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
             if (copyFrom.ShowDialog(this) == DialogResult.OK)
@@ -759,6 +811,10 @@ namespace PS3TrophyIsGood
                     {
                         _times = copyFrom.LocalPairs.OrderBy(p => p.Id).Select(p => p.Date).ToList();
                     }
+
+                    // Optionally relocate the donor's unlock sequence onto a start date you pick,
+                    // keeping the real gaps between unlocks (see MaybeAnchorToStartDate).
+                    MaybeAnchorToStartDate(_times);
                 }
                 else
                     _times = copyFrom.checkBox1.Checked ? copyFrom.smartCopy().ToList() : copyFrom.copyFrom().ToList();
