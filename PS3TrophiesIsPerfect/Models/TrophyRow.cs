@@ -1,14 +1,15 @@
+using System;
 using System.Windows.Media;
+using PS3TrophiesIsPerfect.Services;
 
 namespace PS3TrophiesIsPerfect.Models
 {
-    /// <summary>
-    /// One row in the trophy grid. This is the view-facing shape; the real loader will map the
-    /// frozen TROPHYParser tables onto these. <see cref="TypeBrush"/> is precomputed so the XAML
-    /// needs no value converter.
-    /// </summary>
+    /// <summary>One row in the trophy grid, projected from the frozen TROPHYParser tables.</summary>
     public sealed class TrophyRow
     {
+        /// <summary>Trophy id == index in the parser tables (Platinum = 0).</summary>
+        public int Id { get; set; }
+
         public string Name { get; set; }
         public string Detail { get; set; }
 
@@ -17,19 +18,23 @@ namespace PS3TrophiesIsPerfect.Models
 
         public bool Got { get; set; }
         public bool Synced { get; set; }
-        public string Time { get; set; }
+
+        public DateTime? Time { get; set; }
 
         /// <summary>PSNProfiles-style "elapsed (+gap)" string.</summary>
         public string Elapsed { get; set; }
 
+        /// <summary>Real per-trophy artwork (TROPxxx.PNG). Null until a game is loaded.</summary>
+        public ImageSource Icon { get; set; }
+
+        public string TimeText => Time.HasValue ? Time.Value.ToString("yyyy/MM/dd  HH:mm:ss") : string.Empty;
         public string GotText => Got ? "Yes" : "No";
         public string SyncedText => Synced ? "Yes" : "No";
 
-        /// <summary>
-        /// Trophy-type badge (the PSNProfiles platinum/gold/silver/bronze PNGs). Used as the row image
-        /// until a real game folder is loaded, at which point the per-trophy TROPxxx.PNG artwork replaces it.
-        /// </summary>
-        public string TypeIcon
+        /// <summary>What the grid shows: real artwork if loaded, otherwise the trophy-type badge.</summary>
+        public ImageSource Display => Icon ?? TypeBadge;
+
+        public ImageSource TypeBadge
         {
             get
             {
@@ -42,7 +47,7 @@ namespace PS3TrophiesIsPerfect.Models
                     case "B": name = "bronze"; break;
                     default: return null;
                 }
-                return "pack://application:,,,/Assets/TrophyTypes/" + name + ".png";
+                return ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + name + ".png");
             }
         }
 

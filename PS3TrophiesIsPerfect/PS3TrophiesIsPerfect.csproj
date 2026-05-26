@@ -9,14 +9,25 @@
     <Product>PS3TrophiesIsPerfect</Product>
     <AssemblyTitle>PS3TrophiesIsPerfect</AssemblyTitle>
     <LangVersion>latest</LangVersion>
-    <UseWindowsForms>false</UseWindowsForms>
+    <!-- For the native folder-browser dialog (System.Windows.Forms.FolderBrowserDialog). -->
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- pfdtool (decrypt/encrypt) copied next to the exe so the working dir resolves "pfdtool\". -->
+    <Content Include="..\PS3TrophyIsGood\pfdtool\**\*.*"
+             Link="pfdtool\%(RecursiveDir)%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Modern Fluent (Win10/11) styling for WPF; net48-compatible. -->
     <PackageReference Include="ModernWpfUI" Version="0.9.6" />
     <!-- net48 reference assemblies so this builds under the .NET SDK without VS installed. -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- JSON parsing of the FlareSolverr proxy response. -->
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
