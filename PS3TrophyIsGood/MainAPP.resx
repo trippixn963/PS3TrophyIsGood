@@ -313,7 +313,7 @@
     <value>yyyy/M/dd  HH:mm:ss</value>
   </data>
   <data name="dateTimePicker1.Font" type="System.Drawing.Font, System.Drawing">
-    <value>Microsoft Sans Serif, 9pt</value>
+    <value>Segoe UI, 9pt</value>
   </data>
   <data name="dateTimePicker1.Location" type="System.Drawing.Point, System.Drawing">
     <value>661, 31</value>
@@ -525,6 +525,12 @@
   <data name="columnHeader8.Width" type="System.Int32, mscorlib">
     <value>80</value>
   </data>
+  <data name="columnHeader9.Text" xml:space="preserve">
+    <value>Since first (gap)</value>
+  </data>
+  <data name="columnHeader9.Width" type="System.Int32, mscorlib">
+    <value>160</value>
+  </data>
   <data name="listViewEx1.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Fill</value>
   </data>
@@ -556,7 +562,7 @@
     <value>50</value>
   </metadata>
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
-    <value>6, 12</value>
+    <value>7, 15</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>918, 464</value>

@@ -66,6 +66,7 @@
             this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -252,7 +253,8 @@
             this.columnHeader5,
             this.columnHeader7,
             this.columnHeader6,
-            this.columnHeader8});
+            this.columnHeader8,
+            this.columnHeader9});
             resources.ApplyResources(this.listViewEx1, "listViewEx1");
             this.listViewEx1.DoubleClickActivation = false;
             this.listViewEx1.FullRowSelect = true;
@@ -265,6 +267,7 @@
             this.listViewEx1.SubItemClicked += new ListViewEx.SubItemEventHandler(this.listViewEx1_SubItemClicked);
             this.listViewEx1.SubItemEndEditing += new ListViewEx.SubItemEndEditingEventHandler(this.listViewEx1_SubItemEndEditing);
             this.listViewEx1.DoubleClick += new System.EventHandler(this.listViewEx1_DoubleClick);
+            this.listViewEx1.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listViewEx1_ColumnClick);
             // 
             // columnHeader1
             // 
@@ -298,12 +301,17 @@
             // columnHeader8
             // 
             resources.ApplyResources(this.columnHeader8, "columnHeader8");
-            // 
+            //
+            // columnHeader9
+            //
+            resources.ApplyResources(this.columnHeader9, "columnHeader9");
+            //
             // MainAPP
-            // 
+            //
             this.AllowDrop = true;
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.listViewEx1);
             this.Controls.Add(this.label4);
@@ -360,6 +368,7 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem setRandomEndTimeToolStripMenuItem;
         private System.Windows.Forms.ColumnHeader columnHeader8;
+        private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
         private System.Windows.Forms.ToolStripComboBox toolStripComboBox2;
         private System.Windows.Forms.ToolStripMenuItem isRpcs3Format;

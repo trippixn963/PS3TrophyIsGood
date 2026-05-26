@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using TROPHYParser;
@@ -54,6 +55,7 @@ namespace PS3TrophyIsGood
             Thread.CurrentThread.CurrentCulture = curinfo;
             Thread.CurrentThread.CurrentUICulture = curinfo;
             InitializeComponent();
+            BuildColorLegend();
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
             toolStripComboBox1.SelectedIndexChanged += toolStripComboBox1_SelectedIndexChanged;
@@ -173,6 +175,7 @@ namespace PS3TrophyIsGood
                 lvi.BackColor = Color.LightGray;
                 lvi.SubItems[6].Text = string.Empty;
                 CompletionRates();
+                RefreshTimeDiffColumn();
                 haveBeenEdited = true;
             }
         }
@@ -196,6 +199,7 @@ namespace PS3TrophyIsGood
                         lvi.BackColor = Color.White;
                         lvi.SubItems[6].Text = trophyTime.ToString(Properties.strings.DateFormatString);
                         CompletionRates();
+                        RefreshTimeDiffColumn();
                         haveBeenEdited = true;
                         return true;
                     }
@@ -230,6 +234,7 @@ namespace PS3TrophyIsGood
                         tti.Time = trophyTime;
                         tusr.trophyTimeInfoTable[trophyId] = tti;
                         lvi.SubItems[6].Text = trophyTime.ToString(Properties.strings.DateFormatString);
+                        RefreshTimeDiffColumn();
                         haveBeenEdited = true;
                         return true;
                     }
@@ -249,6 +254,7 @@ namespace PS3TrophyIsGood
         private void RefreshComponents()
         {
             EmptyAllComponents();
+            var timeDiffs = ComputeTimeDiffStrings();
             listViewEx1.BeginUpdate();
             for (int i = 0; i < tconf.Count; i++)
             {
@@ -291,6 +297,8 @@ namespace PS3TrophyIsGood
                     baseGameCount = i;
                 }
                 else lvi.SubItems.Add($"DLC{tconf[i].gid}");
+
+                lvi.SubItems.Add(timeDiffs.TryGetValue(i, out string diff) ? diff : string.Empty);
 
                 listViewEx1.Items.Add(lvi);
             }
@@ -668,18 +676,25 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Normalizes a trophy name for tolerant matching: Unicode NFKC (folds full-width and other
-        /// compatibility forms common in CN/JP titles), every run of whitespace collapsed to one space,
-        /// then trimmed and lower-cased. Returns "" for null/blank input. Both sides of a match must be
-        /// run through this so the comparison is symmetric.
+        /// Normalizes a trophy name for tolerant matching: applies Unicode NFKC (folds full-width and
+        /// other compatibility forms common in CN/JP titles, and decomposes the … ellipsis to "..."),
+        /// then keeps only letters and digits, lower-cased — discarding all whitespace and punctuation.
+        /// This makes matching immune to cosmetic differences in spacing, casing, smart vs. straight
+        /// quotes (' ’), en/em dashes (– —), trailing "!"/"?" etc. between the JSON and the game's
+        /// TROPCONF. Returns "" for null/blank input. Both sides of a match must be run through this so
+        /// the comparison stays symmetric.
         /// </summary>
         private static string NormalizeTrophyName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return string.Empty;
+
             string n = name.Normalize(System.Text.NormalizationForm.FormKC);
-            n = System.Text.RegularExpressions.Regex.Replace(n, @"\s+", " ");
-            return n.Trim().ToLowerInvariant();
+            var sb = new System.Text.StringBuilder(n.Length);
+            foreach (char c in n)
+                if (char.IsLetterOrDigit(c))
+                    sb.Append(char.ToLowerInvariant(c));
+            return sb.ToString();
         }
 
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
@@ -782,5 +797,271 @@ namespace PS3TrophyIsGood
         {
             isRpcs3Format.Checked = !isRpcs3Format.Checked;
         }
+
+        #region ListView column sorting and color legend (UI enhancements)
+
+        private int _sortColumn = -1;
+        private SortOrder _sortOrder = SortOrder.Ascending;
+
+        /// <summary>
+        /// Sorts the trophy list by the clicked column, toggling ascending/descending on repeat clicks,
+        /// and shows the matching arrow in the header. Row identity is unaffected because every row
+        /// carries its trophy id in <see cref="ListViewItem.ImageIndex"/>, not its visual position.
+        /// </summary>
+        private void listViewEx1_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            if (e.Column == _sortColumn)
+                _sortOrder = _sortOrder == SortOrder.Ascending ? SortOrder.Descending : SortOrder.Ascending;
+            else
+            {
+                _sortColumn = e.Column;
+                _sortOrder = SortOrder.Ascending;
+            }
+
+            listViewEx1.ListViewItemSorter = new ListViewItemComparer(e.Column, _sortOrder);
+            listViewEx1.Sort();
+            SetSortArrow(_sortColumn, _sortOrder);
+        }
+
+        /// <summary>
+        /// Compares two rows by one column's text. Values that both parse as numbers compare numerically;
+        /// everything else (including the "yyyy/MM/dd HH:mm:ss" time column, which sorts chronologically
+        /// as text) compares as a culture-aware string.
+        /// </summary>
+        private sealed class ListViewItemComparer : System.Collections.IComparer
+        {
+            private readonly int _column;
+            private readonly SortOrder _order;
+
+            public ListViewItemComparer(int column, SortOrder order)
+            {
+                _column = column;
+                _order = order;
+            }
+
+            public int Compare(object x, object y)
+            {
+                string a = TextOf((ListViewItem)x);
+                string b = TextOf((ListViewItem)y);
+
+                int result;
+                if (double.TryParse(a, out double da) && double.TryParse(b, out double db))
+                    result = da.CompareTo(db);
+                else
+                    result = string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
+
+                return _order == SortOrder.Descending ? -result : result;
+            }
+
+            private string TextOf(ListViewItem item)
+            {
+                return _column < item.SubItems.Count ? item.SubItems[_column].Text : string.Empty;
+            }
+        }
+
+        // --- Native sort-arrow glyph on the list's header (no managed WinForms API exists for this) ---
+        private const int LVM_FIRST = 0x1000;
+        private const int LVM_GETHEADER = LVM_FIRST + 31;
+        private const int HDM_FIRST = 0x1200;
+        private const int HDM_GETITEM = HDM_FIRST + 11;
+        private const int HDM_SETITEM = HDM_FIRST + 12;
+        private const int HDI_FORMAT = 0x0004;
+        private const int HDF_SORTUP = 0x0400;
+        private const int HDF_SORTDOWN = 0x0200;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct HDITEM
+        {
+            public int mask;
+            public int cxy;
+            public IntPtr pszText;
+            public IntPtr hbm;
+            public int cchTextMax;
+            public int fmt;
+            public IntPtr lParam;
+            public int iImage;
+            public int iOrder;
+            public uint type;
+            public IntPtr pvFilter;
+            public uint state;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, ref HDITEM lParam);
+
+        /// <summary>
+        /// Puts the up/down sort glyph on <paramref name="sortColumn"/>'s header and clears it from every
+        /// other column.
+        /// </summary>
+        private void SetSortArrow(int sortColumn, SortOrder order)
+        {
+            if (!listViewEx1.IsHandleCreated)
+                return;
+
+            IntPtr header = SendMessage(listViewEx1.Handle, LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+            if (header == IntPtr.Zero)
+                return;
+
+            for (int i = 0; i < listViewEx1.Columns.Count; i++)
+            {
+                var hd = new HDITEM { mask = HDI_FORMAT };
+                SendMessage(header, HDM_GETITEM, (IntPtr)i, ref hd);
+
+                hd.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
+                if (i == sortColumn && order != SortOrder.None)
+                    hd.fmt |= order == SortOrder.Ascending ? HDF_SORTUP : HDF_SORTDOWN;
+
+                SendMessage(header, HDM_SETITEM, (IntPtr)i, ref hd);
+            }
+        }
+
+        /// <summary>
+        /// Builds the bottom-docked color legend explaining the row background colors set in
+        /// <see cref="RefreshComponents"/> (white = unlocked, pink = synced, gray = still locked).
+        /// The list view is Dock=Fill, so docking this to the bottom shrinks the list to fit.
+        /// </summary>
+        private void BuildColorLegend()
+        {
+            var legend = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(6, 3, 6, 3),
+                BackColor = SystemColors.Control,
+            };
+
+            legend.Controls.Add(MakeLegendEntry(Color.White, "Unlocked"));
+            legend.Controls.Add(MakeLegendEntry(Color.LightPink, "Synced"));
+            legend.Controls.Add(MakeLegendEntry(Color.LightGray, "Locked"));
+
+            Controls.Add(legend);
+            legend.BringToFront();
+        }
+
+        private static Control MakeLegendEntry(Color color, string text)
+        {
+            var entry = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Margin = new Padding(2, 0, 14, 0),
+            };
+            entry.Controls.Add(new Label
+            {
+                BackColor = color,
+                BorderStyle = BorderStyle.FixedSingle,
+                Size = new Size(14, 14),
+                Margin = new Padding(0, 2, 5, 0),
+            });
+            entry.Controls.Add(new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Margin = new Padding(0, 3, 0, 0),
+            });
+            return entry;
+        }
+
+        /// <summary>
+        /// Computes, for every unlocked trophy, the PSNProfiles-style "elapsed since the first trophy
+        /// (+gap from the previous trophy)" string. Both are measured in chronological unlock order,
+        /// which is independent of the grid's current sort. The first trophy gets "", the second gets
+        /// just the elapsed value (gap equals elapsed there), and the rest get "elapsed (+gap)".
+        /// Keyed by trophy id (== ListViewItem.ImageIndex).
+        /// </summary>
+        private Dictionary<int, string> ComputeTimeDiffStrings()
+        {
+            var unlocked = new List<KeyValuePair<int, DateTime>>();
+            if (tconf != null && tpsn != null && tusr != null)
+            {
+                for (int i = 0; i < tconf.Count; i++)
+                {
+                    DateTime? t = UnlockTimeOf(i);
+                    if (t.HasValue)
+                        unlocked.Add(new KeyValuePair<int, DateTime>(i, t.Value));
+                }
+            }
+            unlocked.Sort((a, b) => a.Value.CompareTo(b.Value));
+
+            var result = new Dictionary<int, string>();
+            for (int k = 0; k < unlocked.Count; k++)
+            {
+                if (k == 0)
+                {
+                    result[unlocked[k].Key] = string.Empty;
+                    continue;
+                }
+
+                TimeSpan elapsed = unlocked[k].Value - unlocked[0].Value;
+                if (k == 1)
+                {
+                    result[unlocked[k].Key] = FormatSpan(elapsed);
+                }
+                else
+                {
+                    TimeSpan gap = unlocked[k].Value - unlocked[k - 1].Value;
+                    result[unlocked[k].Key] = FormatSpan(elapsed) + " (+" + FormatSpan(gap) + ")";
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// The unlock timestamp the Time column shows for trophy <paramref name="i"/>, or null if it
+        /// isn't unlocked. Mirrors the source-of-truth precedence used in <see cref="RefreshComponents"/>.
+        /// </summary>
+        private DateTime? UnlockTimeOf(int i)
+        {
+            if (tpsn[i].HasValue && tpsn[i].Value.Time.Ticks > 0)
+                return tpsn[i].Value.Time;
+            DateTime t = tusr.trophyTimeInfoTable[i].Time;
+            return t.Ticks > 0 ? t : (DateTime?)null;
+        }
+
+        /// <summary>Compact span formatter, e.g. "1h 18m 5s", "43m 14s", "9s". Days are shown when present.</summary>
+        private static string FormatSpan(TimeSpan ts)
+        {
+            if (ts < TimeSpan.Zero)
+                ts = TimeSpan.Zero;
+            var sb = new System.Text.StringBuilder();
+            if (ts.Days > 0)
+                sb.Append(ts.Days).Append("d ");
+            if (ts.Hours > 0)
+                sb.Append(ts.Hours).Append("h ");
+            if (ts.Minutes > 0)
+                sb.Append(ts.Minutes).Append("m ");
+            sb.Append(ts.Seconds).Append('s');
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Recomputes the time-difference column in place for all rows. Called after single-row edits
+        /// (unlock / change time / delete) that don't trigger a full <see cref="RefreshComponents"/>,
+        /// since changing one trophy's time shifts the elapsed/gap values of every later trophy.
+        /// </summary>
+        private void RefreshTimeDiffColumn()
+        {
+            if (tconf == null)
+                return;
+
+            int col = columnHeader9.Index;
+            var diffs = ComputeTimeDiffStrings();
+            foreach (ListViewItem item in listViewEx1.Items)
+            {
+                if (col < item.SubItems.Count)
+                    item.SubItems[col].Text =
+                        diffs.TryGetValue(item.ImageIndex, out string s) ? s : string.Empty;
+            }
+        }
+
+        #endregion
     }
 }
