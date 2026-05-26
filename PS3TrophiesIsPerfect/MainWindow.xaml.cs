@@ -35,10 +35,10 @@ namespace PS3TrophiesIsPerfect
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint msg, uint action, IntPtr changeInfo);
 
-        private void Grid_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private async void Grid_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (Grid.SelectedItem is TrophyRow row)
-                Vm.EditRow(row);
+                await Vm.EditRow(row);
         }
 
         private void Window_DragOver(object sender, DragEventArgs e)

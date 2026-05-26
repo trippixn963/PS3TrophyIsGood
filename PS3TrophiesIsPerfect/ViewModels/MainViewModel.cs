@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using PS3TrophiesIsPerfect.Dialogs;
 using PS3TrophiesIsPerfect.Infra;
@@ -58,13 +57,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public MainViewModel()
         {
             OpenCommand = new RelayCommand(Open);
-            SaveCommand = new RelayCommand(Save, () => _doc.IsOpen);
+            SaveCommand = new RelayCommand(async () => await SaveAsync(), () => _doc.IsOpen);
             RefreshCommand = new RelayCommand(Refresh, () => _doc.IsOpen);
             ScrapeCommand = new RelayCommand(async () => await ScrapeAsync(), () => _doc.IsOpen && !IsBusy);
-            ClearCommand = new RelayCommand(ClearAll, () => _doc.IsOpen);
+            ClearCommand = new RelayCommand(async () => await ClearAllAsync(), () => _doc.IsOpen);
         }
-
-        private static Window Owner => Application.Current.MainWindow;
 
         public void Open()
         {
@@ -72,11 +69,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                     return;
-                OpenPath(dlg.SelectedPath);
+                _ = OpenPath(dlg.SelectedPath);
             }
         }
 
-        public void OpenPath(string folder)
+        public async Task OpenPath(string folder)
         {
             try
             {
@@ -86,7 +83,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Owner, ex.Message, "Open failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info(ex.Message, "Open failed");
             }
         }
 
@@ -114,24 +111,23 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 Trophies.Add(r);
         }
 
-        public void Save()
+        private async Task SaveAsync()
         {
             try
             {
                 _doc.Save();
                 _dirty = false;
-                MessageBox.Show(Owner, "Saved.", "PS3TrophiesIsPerfect", MessageBoxButton.OK, MessageBoxImage.Information);
+                await Modern.Info("Saved.");
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Owner, ex.Message, "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info(ex.Message, "Save failed");
             }
         }
 
-        private void ClearAll()
+        private async Task ClearAllAsync()
         {
-            if (MessageBox.Show(Owner, "Lock every trophy (clear all unlock times)?", "Clear trophies",
-                    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (!await Modern.Confirm("Lock every trophy (clear all unlock times)?", "Clear trophies"))
                 return;
             _doc.ClearAll();
             _dirty = true;
@@ -139,44 +135,41 @@ namespace PS3TrophiesIsPerfect.ViewModels
         }
 
         /// <summary>Double-click a row: set / change / (synced → blocked) the unlock time.</summary>
-        public void EditRow(TrophyRow row)
+        public async Task EditRow(TrophyRow row)
         {
             if (row == null || !_doc.IsOpen) return;
             if (_doc.IsSynced(row.Id))
             {
-                MessageBox.Show(Owner, "Trophy already synchronized. Can't be modified.", "Locked",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                await Modern.Info("Trophy already synchronized. Can't be modified.", "Locked");
                 return;
             }
 
             bool got = _doc.IsGot(row.Id);
             DateTime initial = _doc.TimeOf(row.Id) ?? DateTime.Now;
-            var dlg = new DateInputWindow(got ? "Change unlock time" : "Unlock time", initial) { Owner = Owner };
-            if (dlg.ShowDialog() != true) return;
+            DateTime? picked = await Modern.PromptDate(got ? "Change unlock time" : "Unlock time", initial, showTime: true);
+            if (picked == null) return;
 
             try
             {
-                if (got) _doc.ChangeTime(row.Id, dlg.SelectedDateTime);
-                else _doc.Unlock(row.Id, dlg.SelectedDateTime);
+                if (got) _doc.ChangeTime(row.Id, picked.Value);
+                else _doc.Unlock(row.Id, picked.Value);
                 _dirty = true;
                 Refresh();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Owner, ex.Message, "Can't apply", MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info(ex.Message, "Can't apply");
             }
         }
 
         private async Task ScrapeAsync()
         {
-            var urlDlg = new TextInputWindow { Owner = Owner };
-            if (urlDlg.ShowDialog() != true) return;
-            string url = urlDlg.Text;
+            string url = await Modern.PromptUrl();
+            if (url == null) return;
             if (!PsnProfilesScraper.LooksLikeTrophyUrl(url))
             {
-                MessageBox.Show(Owner, "Enter a PSNProfiles game-trophy URL, e.g.\n" +
-                    "https://psnprofiles.com/trophies/41027-pragmata/SomeUser", "Copy from PSNProfiles",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info("Enter a PSNProfiles game-trophy URL, e.g.\n" +
+                    "https://psnprofiles.com/trophies/41027-pragmata/SomeUser", "Copy from PSNProfiles");
                 return;
             }
 
@@ -190,15 +183,14 @@ namespace PS3TrophiesIsPerfect.ViewModels
             catch (Exception ex)
             {
                 IsBusy = false;
-                MessageBox.Show(Owner, ex.Message, "Scrape failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info(ex.Message, "Scrape failed");
                 return;
             }
             IsBusy = false;
 
             if (scraped.Count == 0)
             {
-                MessageBox.Show(Owner, "No earned trophies were found on that page.", "Copy from PSNProfiles",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                await Modern.Info("No earned trophies were found on that page.", "Copy from PSNProfiles");
                 return;
             }
 
@@ -208,30 +200,27 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 const int max = 15;
                 string list = string.Join("\n  • ", unmatched.Take(max));
                 if (unmatched.Count > max) list += $"\n  … and {unmatched.Count - max} more";
-                MessageBox.Show(Owner,
+                await Modern.Info(
                     $"Matched {matched} of {matched + unmatched.Count} scraped trophies by name.\n\n" +
-                    "These matched no trophy and were skipped:\n  • " + list,
-                    "Copy from PSNProfiles", MessageBoxButton.OK, MessageBoxImage.Information);
+                    "These matched no trophy and were skipped:\n  • " + list, "Copy from PSNProfiles");
             }
 
             if (!times.Any(t => t != 0))
                 return;
 
-            // Offer the night-session relocation.
-            if (MessageBox.Show(Owner,
+            if (await Modern.Confirm(
                     "Rebuild this run as nightly play sessions from a start date through today, finishing " +
                     "with the platinum earned today?\n\nYes = pick the start date.   No = keep the scraped dates.",
-                    "Relocate to night sessions", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                    "Relocate to night sessions"))
             {
-                var dateDlg = new DateInputWindow("Start date — the first night of the run", DateTime.Today, showTime: false) { Owner = Owner };
-                if (dateDlg.ShowDialog() == true)
+                DateTime? start = await Modern.PromptDate("Start date — the first night of the run", DateTime.Today, showTime: false);
+                if (start != null)
                 {
-                    var r = _doc.RelocateToNightSessions(times, dateDlg.SelectedDateTime.Date);
-                    MessageBox.Show(Owner,
+                    var r = _doc.RelocateToNightSessions(times, start.Value.Date);
+                    await Modern.Info(
                         $"Rebuilt across {r.Sessions} session(s) — " + (r.PlatEarned ? "platinum" : "last trophy") +
                         " earned just now.\n\nStarted:   " + r.First.ToString("yyyy/MM/dd  HH:mm:ss") +
-                        "\nFinished:  " + r.Last.ToString("yyyy/MM/dd  HH:mm:ss"),
-                        "Relocate to night sessions", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "\nFinished:  " + r.Last.ToString("yyyy/MM/dd  HH:mm:ss"), "Relocate to night sessions");
                 }
             }
 
@@ -243,7 +232,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Owner, ex.Message, "Apply failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                await Modern.Info(ex.Message, "Apply failed");
             }
         }
     }
