@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -37,7 +38,9 @@ namespace PS3TrophyIsGood
             UI.Theme.Apply(this);
         }
 
-        private void accept_Click(object sender, EventArgs e)
+        private Panel _busyPanel;
+
+        private async void accept_Click(object sender, EventArgs e)
         {
             if (!Regex.IsMatch(textBox1.Text, "psnprofiles\\.com/trophies/", RegexOptions.IgnoreCase))
             {
@@ -48,20 +51,20 @@ namespace PS3TrophyIsGood
                 return;
             }
 
+            string url = textBox1.Text.Trim();
+            ShowBusy(true);
             try
             {
-                Cursor = Cursors.WaitCursor;
-                _localPairs = LoadFromPsnProfiles(textBox1.Text.Trim()).ToList();
+                // Scrape on a background thread so the busy overlay (marquee) keeps animating.
+                _localPairs = await System.Threading.Tasks.Task.Run(() => LoadFromPsnProfiles(url).ToList());
             }
             catch (Exception ex)
             {
+                ShowBusy(false);
                 UI.Dialog.Show("PSNProfiles import failed: " + ex.Message);
                 return;
             }
-            finally
-            {
-                Cursor = Cursors.Default;
-            }
+            ShowBusy(false);
 
             if (_localPairs.Count == 0)
             {
@@ -71,6 +74,39 @@ namespace PS3TrophyIsGood
 
             UI.Dialog.Show($"Scraped {_localPairs.Count} earned trophies from PSNProfiles.");
             DialogResult = DialogResult.OK;
+        }
+
+        /// <summary>Shows/hides a full-dialog "Scraping…" overlay and disables inputs during the scrape.</summary>
+        private void ShowBusy(bool on)
+        {
+            if (_busyPanel == null)
+            {
+                _busyPanel = new Panel { Dock = DockStyle.Fill, BackColor = UI.Theme.Surface };
+                var label = new Label
+                {
+                    Text = "Scraping PSNProfiles…\nThis can take up to a minute.",
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    ForeColor = UI.Theme.Text,
+                    Font = new Font("Segoe UI", 10F),
+                };
+                var bar = new ProgressBar
+                {
+                    Style = ProgressBarStyle.Marquee,
+                    MarqueeAnimationSpeed = 30,
+                    Dock = DockStyle.Bottom,
+                    Height = 6,
+                };
+                _busyPanel.Controls.Add(label);
+                _busyPanel.Controls.Add(bar);
+                Controls.Add(_busyPanel);
+            }
+            _busyPanel.Visible = on;
+            if (on)
+                _busyPanel.BringToFront();
+            accept.Enabled = !on;
+            button2.Enabled = !on;
+            textBox1.Enabled = !on;
         }
 
         /// <summary>

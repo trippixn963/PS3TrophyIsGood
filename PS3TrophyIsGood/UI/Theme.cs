@@ -24,6 +24,8 @@ namespace PS3TrophyIsGood.UI
 
         // Accent (PlayStation blue)
         public static readonly Color Accent = Color.FromArgb(0x2F, 0x81, 0xF7);
+        public static readonly Color SelectionBack = Color.FromArgb(0x1B, 0x2B, 0x45); // muted blue, selected row
+        public static readonly Color Divider = Color.FromArgb(0x24, 0x24, 0x24); // subtle row divider
 
         // Trophy row states (background + text), tuned for the near-black surface
         public static readonly Color RowUnlockedBack = Color.FromArgb(0x1E, 0x1E, 0x1E); // lifted off the surface

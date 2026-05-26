@@ -42,6 +42,8 @@ namespace PS3TrophyIsGood
         private Label gameSubtitle;
         private UI.RingControl completionRing;
         private int _hoverIndex = -1; // list row under the cursor (for the hover highlight)
+        private ToolStripTextBox searchBox; // toolbar filter-by-name box
+        private System.Collections.Generic.List<ListViewItem> _allItems; // full row set for filtering
 
         public MainAPP()
         {
@@ -369,6 +371,30 @@ namespace PS3TrophyIsGood
             }
             listViewEx1.EndUpdate();
             CompletionRates();
+            _allItems = listViewEx1.Items.Cast<ListViewItem>().ToList();
+            if (searchBox != null && !string.IsNullOrWhiteSpace(searchBox.Text))
+                FilterList(searchBox.Text);
+            else
+                UpdateEmptyHint();
+        }
+
+        /// <summary>Shows only rows whose trophy name contains <paramref name="query"/> (case-insensitive).</summary>
+        private void FilterList(string query)
+        {
+            if (_allItems == null)
+                return;
+            listViewEx1.BeginUpdate();
+            listViewEx1.Items.Clear();
+            if (string.IsNullOrWhiteSpace(query))
+                listViewEx1.Items.AddRange(_allItems.ToArray());
+            else
+                listViewEx1.Items.AddRange(
+                    _allItems
+                        .Where(it => it.Text.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                        .ToArray()
+                );
+            listViewEx1.EndUpdate();
+            _hoverIndex = -1;
             UpdateEmptyHint();
         }
 
@@ -1183,7 +1209,14 @@ namespace PS3TrophyIsGood
                     hAlign = TextFormatFlags.Left;
                     break;
             }
-            var textBounds = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, e.Bounds.Width - 12, e.Bounds.Height);
+            // Reserve room on the right for the sort arrow so the header text never runs under it.
+            int rightReserve = e.ColumnIndex == _sortColumn ? 22 : 6;
+            var textBounds = new Rectangle(
+                e.Bounds.X + 6,
+                e.Bounds.Y,
+                e.Bounds.Width - 6 - rightReserve,
+                e.Bounds.Height
+            );
             TextRenderer.DrawText(
                 e.Graphics,
                 e.Header.Text,
@@ -1219,16 +1252,30 @@ namespace PS3TrophyIsGood
         {
             bool selected = e.Item.Selected;
             bool hover = !selected && e.Item.Index == _hoverIndex;
-            Color back = selected ? UI.Theme.Accent : (hover ? UI.Theme.Hover : e.Item.BackColor);
+            Color back = selected ? UI.Theme.SelectionBack : (hover ? UI.Theme.Hover : e.Item.BackColor);
             using (var b = new SolidBrush(back))
                 e.Graphics.FillRectangle(b, e.Bounds);
 
-            Color fore = selected ? Color.White : e.Item.ForeColor;
+            // Subtle divider between rows.
+            using (var pen = new Pen(UI.Theme.Divider))
+                e.Graphics.DrawLine(
+                    pen,
+                    e.Bounds.Left,
+                    e.Bounds.Bottom - 1,
+                    e.Bounds.Right,
+                    e.Bounds.Bottom - 1
+                );
 
-            // Column 0 = trophy icon + name.
+            Color fore = selected ? UI.Theme.Text : e.Item.ForeColor;
+
+            // Column 0 = trophy icon + name (+ a PlayStation-blue accent bar on the selected row).
             if (e.ColumnIndex == 0)
             {
-                int x = e.Bounds.X + 4;
+                if (selected)
+                    using (var ab = new SolidBrush(UI.Theme.Accent))
+                        e.Graphics.FillRectangle(ab, new Rectangle(e.Bounds.X, e.Bounds.Y, 3, e.Bounds.Height));
+
+                int x = e.Bounds.X + (selected ? 11 : 6);
                 var imgs = listViewEx1.SmallImageList;
                 if (imgs != null && e.Item.ImageIndex >= 0 && e.Item.ImageIndex < imgs.Images.Count)
                 {
@@ -1245,9 +1292,12 @@ namespace PS3TrophyIsGood
                 return;
             }
 
-            // Type column gets its metal colour (unless the row is selected → keep white for contrast).
-            if (e.ColumnIndex == 2 && !selected)
-                fore = MetalColor(e.SubItem.Text);
+            // Type column → a metal-coloured pill badge.
+            if (e.ColumnIndex == 2)
+            {
+                DrawTypePill(e.Graphics, e.Bounds, e.SubItem.Text);
+                return;
+            }
 
             TextFormatFlags hAlign =
                 e.Header.TextAlign == HorizontalAlignment.Center
@@ -1260,6 +1310,37 @@ namespace PS3TrophyIsGood
                 e.Graphics, e.SubItem.Text, UI.Theme.UiFont, cellRect, fore,
                 hAlign | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
             );
+        }
+
+        /// <summary>Draws the trophy type (P/G/S/B) as a small metal-coloured pill badge.</summary>
+        private static void DrawTypePill(Graphics g, Rectangle cell, string ttype)
+        {
+            if (string.IsNullOrEmpty(ttype))
+                return;
+            Color metal = MetalColor(ttype);
+            var pill = new Rectangle(cell.X + (cell.Width - 26) / 2, cell.Y + (cell.Height - 18) / 2, 26, 18);
+            var oldMode = g.SmoothingMode;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (var path = RoundedRect(pill, 9))
+            using (var fill = new SolidBrush(Color.FromArgb(46, metal)))
+                g.FillPath(fill, path);
+            g.SmoothingMode = oldMode;
+            TextRenderer.DrawText(
+                g, ttype, UI.Theme.UiFont, pill, metal,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding
+            );
+        }
+
+        private static System.Drawing.Drawing2D.GraphicsPath RoundedRect(Rectangle r, int radius)
+        {
+            int d = radius * 2;
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
         // --- Row hover highlight ---
@@ -1393,6 +1474,20 @@ namespace PS3TrophyIsGood
             toolbar.Items.Add(toolStripComboBox1);
             toolbar.Items.Add(toolStripComboBox2);
 
+            // Search / filter box (right-aligned, with a search glyph).
+            searchBox = new ToolStripTextBox
+            {
+                Alignment = ToolStripItemAlignment.Right,
+                ToolTipText = "Filter trophies by name",
+                BackColor = UI.Theme.Input,
+                ForeColor = UI.Theme.Text,
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            searchBox.Width = 190;
+            searchBox.TextChanged += (s, e) => FilterList(searchBox.Text);
+            toolbar.Items.Add(searchBox);
+            toolbar.Items.Add(new ToolStripLabel { Image = GlyphImage(0xE721), Alignment = ToolStripItemAlignment.Right }); // Search
+
             // --- Hero header ---
             heroPanel = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = UI.Theme.Surface };
             heroPanel.Paint += (s, e) =>
@@ -1519,7 +1614,12 @@ namespace PS3TrophyIsGood
                 return;
             emptyHint.Visible = listViewEx1.Items.Count == 0;
             if (emptyHint.Visible)
+            {
+                emptyHint.Text = isOpen
+                    ? "No trophies match your search"
+                    : "Open a trophy folder, or drag one here";
                 emptyHint.BringToFront();
+            }
         }
 
         private static Control MakeLegendEntry(Color color, string text)
