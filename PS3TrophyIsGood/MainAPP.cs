@@ -65,6 +65,12 @@ namespace PS3TrophyIsGood
             listViewEx1.AllowDrop = true;
             listViewEx1.DragEnter += Form1_DragEnter;
             listViewEx1.DragDrop += Form1_DragDrop;
+            // Center the short status columns for a cleaner grid (Name/Detail/Time/gap stay left).
+            columnHeader3.TextAlign = HorizontalAlignment.Center; // Type
+            columnHeader4.TextAlign = HorizontalAlignment.Center; // Hidden
+            columnHeader5.TextAlign = HorizontalAlignment.Center; // Got
+            columnHeader7.TextAlign = HorizontalAlignment.Center; // Synced
+            columnHeader8.TextAlign = HorizontalAlignment.Center; // From
             BuildColorLegend();
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
@@ -1125,14 +1131,27 @@ namespace PS3TrophyIsGood
                     e.Bounds.Bottom - 1
                 );
 
-            var textBounds = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 26, e.Bounds.Height);
+            TextFormatFlags hAlign;
+            switch (e.Header.TextAlign)
+            {
+                case HorizontalAlignment.Center:
+                    hAlign = TextFormatFlags.HorizontalCenter;
+                    break;
+                case HorizontalAlignment.Right:
+                    hAlign = TextFormatFlags.Right;
+                    break;
+                default:
+                    hAlign = TextFormatFlags.Left;
+                    break;
+            }
+            var textBounds = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, e.Bounds.Width - 12, e.Bounds.Height);
             TextRenderer.DrawText(
                 e.Graphics,
                 e.Header.Text,
                 UI.Theme.UiFont,
                 textBounds,
                 UI.Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
+                hAlign | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
             );
 
             if (e.ColumnIndex == _sortColumn)
