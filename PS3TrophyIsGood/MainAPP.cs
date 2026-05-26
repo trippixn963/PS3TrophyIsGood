@@ -34,8 +34,13 @@ namespace PS3TrophyIsGood
         int baseGameCount;
 
         private string txtDateTimeTmp;
-        private Label statusLabel; // completion stats shown in the bottom bar
         private Label emptyHint; // "open/drag a folder" overlay shown when no game is loaded
+        private ToolStrip toolbar; // modern flat toolbar replacing the old menu bar
+        private Panel heroPanel; // header: game icon, title, completion ring
+        private PictureBox gameIcon;
+        private Label gameTitle;
+        private Label gameSubtitle;
+        private UI.RingControl completionRing;
 
         public MainAPP()
         {
@@ -74,9 +79,11 @@ namespace PS3TrophyIsGood
             columnHeader7.TextAlign = HorizontalAlignment.Center; // Synced
             columnHeader8.TextAlign = HorizontalAlignment.Center; // From
             BuildColorLegend();
-            // The old top-corner stat labels + progress bar are replaced by the bottom status bar.
+            BuildShell();
+            // The old top-corner stat labels, progress bar and link are replaced by the toolbar + hero.
             label1.Visible = label2.Visible = label3.Visible = label4.Visible = false;
             progressBar1.Visible = false;
+            linkLabel1.Visible = false;
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
             toolStripComboBox1.SelectedIndexChanged += toolStripComboBox1_SelectedIndexChanged;
@@ -372,8 +379,14 @@ namespace PS3TrophyIsGood
             progressBar1.Value = 0;
             label2.Text = "00/00";
             label4.Text = "000/000";
-            if (statusLabel != null)
-                statusLabel.Text = string.Empty;
+            if (gameTitle != null)
+                gameTitle.Text = string.Empty;
+            if (gameSubtitle != null)
+                gameSubtitle.Text = string.Empty;
+            if (completionRing != null)
+                completionRing.Percent = 0;
+            if (gameIcon != null)
+                gameIcon.Image = null;
             UpdateEmptyHint();
         }
 
@@ -411,9 +424,14 @@ namespace PS3TrophyIsGood
             this.Text = Application.ProductName + "-[" + tconf.title_name + "]";
 
             int pct = totalGrade > 0 ? (int)System.Math.Round(getGrade * 100.0 / totalGrade) : 0;
-            if (statusLabel != null)
-                statusLabel.Text =
-                    $"{isGetTrophyNumber} / {tconf.Count} trophies       {getGrade} / {totalGrade} pts       {pct}%";
+            if (gameTitle != null)
+                gameTitle.Text = tconf.title_name;
+            if (gameSubtitle != null)
+                gameSubtitle.Text =
+                    $"{isGetTrophyNumber} / {tconf.Count} trophies      {getGrade} / {totalGrade} pts";
+            if (completionRing != null)
+                completionRing.Percent = pct;
+            LoadGameIcon();
         }
 
         private bool IsTrophySync(int trophyID)
@@ -1259,22 +1277,152 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// Builds the bottom-docked color legend explaining the row background colors set in
-        /// <see cref="RefreshComponents"/> (white = unlocked, pink = synced, gray = still locked).
-        /// The list view is Dock=Fill, so docking this to the bottom shrinks the list to fit.
+        /// Builds the modern shell: a flat toolbar (replacing the old menu bar, reusing every existing
+        /// action handler) and a hero header (game icon, title, completion ring). Added after the list and
+        /// bottom bar so they dock to the top; the old menu strip is hidden.
         /// </summary>
-        private void BuildColorLegend()
+        private void BuildShell()
         {
-            var bar = new Panel
+            toolbar = new ToolStrip
             {
-                Dock = DockStyle.Bottom,
-                Height = 30,
+                Dock = DockStyle.Top,
+                GripStyle = ToolStripGripStyle.Hidden,
+                Renderer = new UI.DarkToolStripRenderer(),
                 BackColor = UI.Theme.Panel,
+                ForeColor = UI.Theme.Text,
+                Padding = new Padding(6, 4, 6, 4),
+                AutoSize = false,
+                Height = 38,
             };
 
+            ToolStripButton Btn(string text, EventHandler onClick)
+            {
+                var b = new ToolStripButton(text)
+                {
+                    DisplayStyle = ToolStripItemDisplayStyle.Text,
+                    ForeColor = UI.Theme.Text,
+                    Padding = new Padding(6, 2, 6, 2),
+                };
+                b.Click += onClick;
+                return b;
+            }
+            toolbar.Items.Add(Btn("📂  Open", openMenuItem_Click));
+            toolbar.Items.Add(Btn("⭳  Copy from PSNProfiles", toolStripMenuItem1_Click));
+            toolbar.Items.Add(Btn("💾  Save", saveMenuItem_Click));
+            toolbar.Items.Add(Btn("⟳  Refresh", refreshMenuItem_Click));
+            toolbar.Items.Add(new ToolStripSeparator());
+
+            var more = new ToolStripDropDownButton("More  ▾")
+            {
+                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                ForeColor = UI.Theme.Text,
+                ShowDropDownArrow = false,
+            };
+            ToolStripMenuItem Item(string text, EventHandler onClick)
+            {
+                var mi = new ToolStripMenuItem(text);
+                mi.Click += onClick;
+                return mi;
+            }
+            more.DropDownItems.Add(Item("Instant Platinum", instantPlatinumMenuItem_Click));
+            more.DropDownItems.Add(Item("Clear Trophies", clearTrophiesMenuItem_Click));
+            more.DropDownItems.Add(new ToolStripSeparator());
+            more.DropDownItems.Add(Item("Set Random Start Time", setRandomStartTimeToolStripMenuItem_Click));
+            more.DropDownItems.Add(Item("Set Random End Time", setRandomEndTimeToolStripMenuItem_Click));
+            more.DropDownItems.Add(new ToolStripSeparator());
+            var rpcs3Item = new ToolStripMenuItem("RPCS3 Trophy Format") { Checked = isRpcs3Format.Checked };
+            rpcs3Item.Click += (s, e) =>
+            {
+                toggleRPCS3TrophyFormatToolStripMenuItem_Click(s, e);
+                rpcs3Item.Checked = isRpcs3Format.Checked;
+            };
+            more.DropDownItems.Add(rpcs3Item);
+            more.DropDownItems.Add(new ToolStripSeparator());
+            more.DropDownItems.Add(Item("Close File", closeFileMenuItem_Click));
+            more.DropDownItems.Add(Item("View on GitHub", (s, e) => linkLabel1_LinkClicked(s, null)));
+            more.DropDownItems.Add(Item("Exit", exitMenuItem_Click));
+            more.DropDown.BackColor = UI.Theme.Panel;
+            more.DropDown.ForeColor = UI.Theme.Text;
+            ((ToolStripDropDownMenu)more.DropDown).Renderer = new UI.DarkToolStripRenderer();
+            toolbar.Items.Add(more);
+
+            // Move the profile + language pickers onto the toolbar, right-aligned.
+            menuStrip1.Items.Remove(toolStripComboBox2);
+            menuStrip1.Items.Remove(toolStripComboBox1);
+            toolStripComboBox1.Alignment = ToolStripItemAlignment.Right;
+            toolStripComboBox2.Alignment = ToolStripItemAlignment.Right;
+            toolbar.Items.Add(toolStripComboBox1);
+            toolbar.Items.Add(toolStripComboBox2);
+
+            // --- Hero header ---
+            heroPanel = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = UI.Theme.Surface };
+            heroPanel.Paint += (s, e) =>
+            {
+                using (var pen = new Pen(UI.Theme.Border))
+                    e.Graphics.DrawLine(pen, 0, heroPanel.Height - 1, heroPanel.Width, heroPanel.Height - 1);
+            };
+            gameIcon = new PictureBox
+            {
+                Location = new Point(16, 12),
+                Size = new Size(56, 56),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = UI.Theme.Surface,
+            };
+            gameTitle = new Label
+            {
+                Location = new Point(86, 14),
+                AutoSize = true,
+                Font = new Font("Segoe UI Semibold", 14F),
+                ForeColor = UI.Theme.Text,
+                BackColor = Color.Transparent,
+            };
+            gameSubtitle = new Label
+            {
+                Location = new Point(88, 46),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = UI.Theme.TextMuted,
+                BackColor = Color.Transparent,
+            };
+            completionRing = new UI.RingControl { Size = new Size(58, 58) };
+            heroPanel.Controls.Add(gameIcon);
+            heroPanel.Controls.Add(gameTitle);
+            heroPanel.Controls.Add(gameSubtitle);
+            heroPanel.Controls.Add(completionRing);
+            heroPanel.Resize += (s, e) =>
+                completionRing.Location = new Point(heroPanel.Width - completionRing.Width - 18, 11);
+
+            // Hide the old menu; add hero then toolbar last so the toolbar docks to the very top.
+            menuStrip1.Visible = false;
+            Controls.Add(heroPanel);
+            Controls.Add(toolbar);
+        }
+
+        /// <summary>Loads the game's ICON0.PNG into the hero (a copy, so the file isn't locked).</summary>
+        private void LoadGameIcon()
+        {
+            if (gameIcon == null)
+                return;
+            try
+            {
+                string iconPath = System.IO.Path.Combine(path ?? string.Empty, "ICON0.PNG");
+                if (System.IO.File.Exists(iconPath))
+                {
+                    using (var img = Image.FromFile(iconPath))
+                        gameIcon.Image = new Bitmap(img);
+                    return;
+                }
+            }
+            catch { /* fall through to no icon */ }
+            gameIcon.Image = null;
+        }
+
+        /// <summary>Builds the bottom color-legend bar (white = unlocked, rose = synced, dim = locked).</summary>
+        private void BuildColorLegend()
+        {
             var legend = new FlowLayoutPanel
             {
-                Dock = DockStyle.Left,
+                Dock = DockStyle.Bottom,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
@@ -1285,21 +1433,8 @@ namespace PS3TrophyIsGood
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowUnlockedBack, "Unlocked"));
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowSyncedBack, "Synced"));
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowLockedBack, "Locked"));
-
-            statusLabel = new Label
-            {
-                Dock = DockStyle.Right,
-                Width = 420,
-                TextAlign = ContentAlignment.MiddleRight,
-                ForeColor = UI.Theme.TextMuted,
-                BackColor = UI.Theme.Panel,
-                Padding = new Padding(0, 0, 12, 0),
-            };
-
-            bar.Controls.Add(legend);
-            bar.Controls.Add(statusLabel);
-            Controls.Add(bar);
-            bar.BringToFront();
+            Controls.Add(legend);
+            legend.BringToFront();
 
             // Empty-state overlay: shown over the (Dock=Fill) list when no game is loaded.
             emptyHint = new Label
@@ -1309,7 +1444,7 @@ namespace PS3TrophyIsGood
                 ForeColor = UI.Theme.TextMuted,
                 BackColor = UI.Theme.Surface,
                 Font = new Font("Segoe UI", 11F),
-                Text = "Open a trophy folder  —  File ▸ Open, or drag a folder here",
+                Text = "Open a trophy folder, or drag one here",
             };
             Controls.Add(emptyHint);
             emptyHint.BringToFront();
