@@ -41,6 +41,7 @@ namespace PS3TrophyIsGood
         private Label gameTitle;
         private Label gameSubtitle;
         private UI.RingControl completionRing;
+        private int _hoverIndex = -1; // list row under the cursor (for the hover highlight)
 
         public MainAPP()
         {
@@ -67,6 +68,8 @@ namespace PS3TrophyIsGood
             listViewEx1.DrawColumnHeader += listViewEx1_DrawColumnHeader;
             listViewEx1.DrawItem += listViewEx1_DrawItem;
             listViewEx1.DrawSubItem += listViewEx1_DrawSubItem;
+            listViewEx1.MouseMove += listViewEx1_MouseMove;
+            listViewEx1.MouseLeave += listViewEx1_MouseLeave;
             // The list (Dock=Fill) covers the form, so make IT a drop target too — relying on the drop
             // bubbling up to the form is unreliable. Reuses the form's (sender-agnostic) drag handlers.
             listViewEx1.AllowDrop = true;
@@ -1215,7 +1218,8 @@ namespace PS3TrophyIsGood
         private void listViewEx1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
         {
             bool selected = e.Item.Selected;
-            Color back = selected ? UI.Theme.Accent : e.Item.BackColor;
+            bool hover = !selected && e.Item.Index == _hoverIndex;
+            Color back = selected ? UI.Theme.Accent : (hover ? UI.Theme.Hover : e.Item.BackColor);
             using (var b = new SolidBrush(back))
                 e.Graphics.FillRectangle(b, e.Bounds);
 
@@ -1258,6 +1262,34 @@ namespace PS3TrophyIsGood
             );
         }
 
+        // --- Row hover highlight ---
+        private void listViewEx1_MouseMove(object sender, MouseEventArgs e)
+        {
+            var item = listViewEx1.GetItemAt(4, e.Y);
+            int idx = item?.Index ?? -1;
+            if (idx == _hoverIndex)
+                return;
+            int old = _hoverIndex;
+            _hoverIndex = idx;
+            InvalidateRow(old);
+            InvalidateRow(idx);
+        }
+
+        private void listViewEx1_MouseLeave(object sender, EventArgs e)
+        {
+            int old = _hoverIndex;
+            _hoverIndex = -1;
+            InvalidateRow(old);
+        }
+
+        private void InvalidateRow(int index)
+        {
+            if (index < 0 || index >= listViewEx1.Items.Count)
+                return;
+            var b = listViewEx1.Items[index].Bounds;
+            listViewEx1.Invalidate(new Rectangle(0, b.Y, listViewEx1.ClientSize.Width, b.Height));
+        }
+
         /// <summary>Maps a PS3 trophy-type letter (P/G/S/B) to its metal colour.</summary>
         private static Color MetalColor(string ttype)
         {
@@ -1297,28 +1329,33 @@ namespace PS3TrophyIsGood
                 Height = 38,
             };
 
-            ToolStripButton Btn(string text, EventHandler onClick)
+            ToolStripButton Btn(int glyph, string text, EventHandler onClick)
             {
                 var b = new ToolStripButton(text)
                 {
-                    DisplayStyle = ToolStripItemDisplayStyle.Text,
+                    DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+                    TextImageRelation = TextImageRelation.ImageBeforeText,
+                    ImageScaling = ToolStripItemImageScaling.None,
+                    Image = GlyphImage(glyph),
                     ForeColor = UI.Theme.Text,
-                    Padding = new Padding(6, 2, 6, 2),
+                    Padding = new Padding(6, 2, 10, 2),
                 };
                 b.Click += onClick;
                 return b;
             }
-            toolbar.Items.Add(Btn("📂  Open", openMenuItem_Click));
-            toolbar.Items.Add(Btn("⭳  Copy from PSNProfiles", toolStripMenuItem1_Click));
-            toolbar.Items.Add(Btn("💾  Save", saveMenuItem_Click));
-            toolbar.Items.Add(Btn("⟳  Refresh", refreshMenuItem_Click));
+            toolbar.Items.Add(Btn(0xE8E5, "Open", openMenuItem_Click)); // OpenFile
+            toolbar.Items.Add(Btn(0xE896, "Copy from PSNProfiles", toolStripMenuItem1_Click)); // Download
+            toolbar.Items.Add(Btn(0xE74E, "Save", saveMenuItem_Click)); // Save
+            toolbar.Items.Add(Btn(0xE72C, "Refresh", refreshMenuItem_Click)); // Refresh
             toolbar.Items.Add(new ToolStripSeparator());
 
-            var more = new ToolStripDropDownButton("More  ▾")
+            var more = new ToolStripDropDownButton("More")
             {
-                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageScaling = ToolStripItemImageScaling.None,
+                Image = GlyphImage(0xE712), // More
                 ForeColor = UI.Theme.Text,
-                ShowDropDownArrow = false,
             };
             ToolStripMenuItem Item(string text, EventHandler onClick)
             {
@@ -1398,6 +1435,29 @@ namespace PS3TrophyIsGood
             menuStrip1.Visible = false;
             Controls.Add(heroPanel);
             Controls.Add(toolbar);
+        }
+
+        /// <summary>Renders a Segoe MDL2 icon glyph to a small monochrome bitmap for a toolbar button.</summary>
+        private static Image GlyphImage(int codepoint)
+        {
+            var bmp = new Bitmap(18, 18);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+                using (var font = new Font("Segoe MDL2 Assets", 12f, GraphicsUnit.Pixel))
+                    TextRenderer.DrawText(
+                        g,
+                        char.ConvertFromUtf32(codepoint),
+                        font,
+                        new Rectangle(0, 0, 18, 18),
+                        UI.Theme.Text,
+                        TextFormatFlags.HorizontalCenter
+                            | TextFormatFlags.VerticalCenter
+                            | TextFormatFlags.NoPadding
+                    );
+            }
+            return bmp;
         }
 
         /// <summary>Loads the game's ICON0.PNG into the hero (a copy, so the file isn't locked).</summary>
