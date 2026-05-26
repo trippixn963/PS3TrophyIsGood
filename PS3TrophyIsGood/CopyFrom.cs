@@ -41,7 +41,7 @@ namespace PS3TrophyIsGood
         {
             if (!Regex.IsMatch(textBox1.Text, "psnprofiles\\.com/trophies/", RegexOptions.IgnoreCase))
             {
-                MessageBox.Show(
+                UI.Dialog.Show(
                     "Enter a PSNProfiles game-trophy URL, e.g.\n"
                         + "https://psnprofiles.com/trophies/1-super-stardust-hd/SomeUser"
                 );
@@ -55,7 +55,7 @@ namespace PS3TrophyIsGood
             }
             catch (Exception ex)
             {
-                MessageBox.Show("PSNProfiles import failed: " + ex.Message);
+                UI.Dialog.Show("PSNProfiles import failed: " + ex.Message);
                 return;
             }
             finally
@@ -65,11 +65,11 @@ namespace PS3TrophyIsGood
 
             if (_localPairs.Count == 0)
             {
-                MessageBox.Show("No earned trophies were found on that PSNProfiles page.");
+                UI.Dialog.Show("No earned trophies were found on that PSNProfiles page.");
                 return;
             }
 
-            MessageBox.Show($"Scraped {_localPairs.Count} earned trophies from PSNProfiles.");
+            UI.Dialog.Show($"Scraped {_localPairs.Count} earned trophies from PSNProfiles.");
             DialogResult = DialogResult.OK;
         }
 

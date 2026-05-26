@@ -20,7 +20,7 @@ namespace PS3TrophyIsGood {
         {
             if (DateTime.Compare(ps3Time, dateTimePicker1.Value) > 0)
             {
-                MessageBox.Show(string.Format(Properties.strings.PsnSyncTime, ps3Time));
+                UI.Dialog.Show(string.Format(Properties.strings.PsnSyncTime, ps3Time));
                 return;
             }
             DialogResult = DialogResult.OK;

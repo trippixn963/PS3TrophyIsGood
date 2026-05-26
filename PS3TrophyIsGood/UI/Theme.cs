@@ -128,7 +128,7 @@ namespace PS3TrophyIsGood.UI
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
-        private static void UseDarkTitleBar(Form form)
+        public static void UseDarkTitleBar(Form form)
         {
             void Set()
             {

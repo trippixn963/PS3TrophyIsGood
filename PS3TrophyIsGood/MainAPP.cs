@@ -34,6 +34,8 @@ namespace PS3TrophyIsGood
         int baseGameCount;
 
         private string txtDateTimeTmp;
+        private Label statusLabel; // completion stats shown in the bottom bar
+        private Label emptyHint; // "open/drag a folder" overlay shown when no game is loaded
 
         public MainAPP()
         {
@@ -72,6 +74,9 @@ namespace PS3TrophyIsGood
             columnHeader7.TextAlign = HorizontalAlignment.Center; // Synced
             columnHeader8.TextAlign = HorizontalAlignment.Center; // From
             BuildColorLegend();
+            // The old top-corner stat labels + progress bar are replaced by the bottom status bar.
+            label1.Visible = label2.Visible = label3.Visible = label4.Visible = false;
+            progressBar1.Visible = false;
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
             toolStripComboBox1.SelectedIndexChanged += toolStripComboBox1_SelectedIndexChanged;
@@ -96,6 +101,8 @@ namespace PS3TrophyIsGood
                     Properties.Settings.Default.Save();
                 }
             }
+
+            UpdateEmptyHint();
         }
 
         /// <summary>
@@ -177,7 +184,7 @@ namespace PS3TrophyIsGood
         {
             if (DateTime.Compare(lastSyncTrophyTime, selectedDate) > 0)
             {
-                MessageBox.Show(string.Format(Properties.strings.PsnSyncTime, lastSyncTrophyTime.ToString(Properties.strings.DateFormatString)));
+                UI.Dialog.Show(string.Format(Properties.strings.PsnSyncTime, lastSyncTrophyTime.ToString(Properties.strings.DateFormatString)));
                 return false;
             }
             return true;
@@ -187,15 +194,15 @@ namespace PS3TrophyIsGood
         {
             if (IsTrophySync(trophyId))
             {
-                MessageBox.Show(Properties.strings.SyncedTrophyCanNotEdit);
+                UI.Dialog.Show(Properties.strings.SyncedTrophyCanNotEdit);
             }
             else
             if (trophyId != 0 && tconf[trophyId].gid == 0 && IsTrophyGot(0))
             {
-                MessageBox.Show(Properties.strings.CantLoclPlatinumBeforOther);
+                UI.Dialog.Show(Properties.strings.CantLoclPlatinumBeforOther);
             }
             else
-            if (MessageBox.Show(Properties.strings.DeleteTrophyConfirm, Properties.strings.Delete, MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (UI.Dialog.Show(Properties.strings.DeleteTrophyConfirm, Properties.strings.Delete, MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 tpsn.DeleteTrophyByID(trophyId);
                 tusr.LockTrophy(trophyId);
@@ -213,7 +220,7 @@ namespace PS3TrophyIsGood
         {
             if (trophyId == 0 && tconf.HasPlatinium && (GetCountBaseTrophiesGot() < baseGameCount))
             {
-                MessageBox.Show(Properties.strings.CantUnloclPlatinumBeforOther);
+                UI.Dialog.Show(Properties.strings.CantUnloclPlatinumBeforOther);
                 return false;
             }
             else
@@ -235,7 +242,7 @@ namespace PS3TrophyIsGood
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(ex.Message);
+                        UI.Dialog.Show(ex.Message);
                         return false;
                     }
                 }
@@ -250,7 +257,7 @@ namespace PS3TrophyIsGood
         {
             if (IsTrophySync(trophyId))
             {
-                MessageBox.Show(Properties.strings.SyncedTrophyCanNotEdit);
+                UI.Dialog.Show(Properties.strings.SyncedTrophyCanNotEdit);
                 return false;
             }
             else
@@ -270,7 +277,7 @@ namespace PS3TrophyIsGood
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(ex.Message);
+                        UI.Dialog.Show(ex.Message);
                         return false;
                     }
                 }
@@ -352,6 +359,7 @@ namespace PS3TrophyIsGood
             }
             listViewEx1.EndUpdate();
             CompletionRates();
+            UpdateEmptyHint();
         }
 
         private void EmptyAllComponents()
@@ -364,6 +372,9 @@ namespace PS3TrophyIsGood
             progressBar1.Value = 0;
             label2.Text = "00/00";
             label4.Text = "000/000";
+            if (statusLabel != null)
+                statusLabel.Text = string.Empty;
+            UpdateEmptyHint();
         }
 
         private void CompletionRates()
@@ -398,6 +409,11 @@ namespace PS3TrophyIsGood
             label2.Text = isGetTrophyNumber + "/" + tconf.Count;
             label4.Text = getGrade + "/" + totalGrade;
             this.Text = Application.ProductName + "-[" + tconf.title_name + "]";
+
+            int pct = totalGrade > 0 ? (int)System.Math.Round(getGrade * 100.0 / totalGrade) : 0;
+            if (statusLabel != null)
+                statusLabel.Text =
+                    $"{isGetTrophyNumber} / {tconf.Count} trophies       {getGrade} / {totalGrade} pts       {pct}%";
         }
 
         private bool IsTrophySync(int trophyID)
@@ -503,7 +519,7 @@ namespace PS3TrophyIsGood
             ListViewItem lvi = ((ListView)sender).SelectedItems[0];
             if (IsTrophySync(trophyID))
             { // only un-synced trophies can be edited
-                MessageBox.Show(Properties.strings.SyncedTrophyCanNotEdit);
+                UI.Dialog.Show(Properties.strings.SyncedTrophyCanNotEdit);
             }
             else if (tpsn[trophyID].HasValue || (isRpcs3Format.Checked && IsTrophyGot(trophyID)))
             {
@@ -513,7 +529,7 @@ namespace PS3TrophyIsGood
             {  // nonget
                 if (trophyID == 0 && tconf.HasPlatinium && (GetCountBaseTrophiesGot() < baseGameCount))
                 {
-                    MessageBox.Show(Properties.strings.CantUnloclPlatinumBeforOther);
+                    UI.Dialog.Show(Properties.strings.CantUnloclPlatinumBeforOther);
                 }
                 else if (dtpForm.ShowDialog(this) == DialogResult.OK)
                 {
@@ -584,7 +600,7 @@ namespace PS3TrophyIsGood
                 tpsn = null;
                 tusr = null;
                 GC.Collect();
-                MessageBox.Show(string.Format(Properties.strings.FileNotFoundMsg, Path.GetFileName(ex.FileName)));
+                UI.Dialog.Show(string.Format(Properties.strings.FileNotFoundMsg, Path.GetFileName(ex.FileName)));
             }
             catch (Exception ex)
             {
@@ -593,7 +609,7 @@ namespace PS3TrophyIsGood
                 tusr = null;
                 GC.Collect();
                 Console.WriteLine(ex.StackTrace);
-                MessageBox.Show(ex.Message);
+                UI.Dialog.Show(ex.Message);
             }
         }
 
@@ -627,7 +643,7 @@ namespace PS3TrophyIsGood
                 listViewEx1.EndEditing(true);
             if (haveBeenEdited)
             {
-                DialogResult dr = MessageBox.Show(Properties.strings.CloseConfirm, Properties.strings.Close, MessageBoxButtons.YesNoCancel);
+                DialogResult dr = UI.Dialog.Show(Properties.strings.CloseConfirm, Properties.strings.Close, MessageBoxButtons.YesNoCancel);
                 if (dr == DialogResult.Yes)
                 {
                     SaveFile();
@@ -715,7 +731,7 @@ namespace PS3TrophyIsGood
         {
             Properties.Settings.Default.Language = toolStripComboBox1.SelectedIndex;
             Properties.Settings.Default.Save();
-            MessageBox.Show(Properties.strings.RestartProgram);
+            UI.Dialog.Show(Properties.strings.RestartProgram);
         }
 
         private void setRandomStartTimeToolStripMenuItem_Click(object sender, EventArgs e)
@@ -789,7 +805,7 @@ namespace PS3TrophyIsGood
                 return;
 
             if (
-                MessageBox.Show(
+                UI.Dialog.Show(
                     "Rebuild this run as nightly play sessions spanning your start date through today, "
                         + "finishing with the platinum earned today?\n\n"
                         + "The first session lands on the date you pick; the platinum lands today; the rest "
@@ -954,7 +970,7 @@ namespace PS3TrophyIsGood
 
             long firstUnlock = times.Where(t => t != 0).Min();
             long lastUnlock = times.Where(t => t != 0).Max();
-            MessageBox.Show(
+            UI.Dialog.Show(
                 $"Rebuilt across {sessions} session(s) — slower than the donor, never a 1:1 copy, "
                     + (platEarned ? "platinum" : "last trophy")
                     + " earned just now.\n\nStarted:   "
@@ -1011,7 +1027,7 @@ namespace PS3TrophyIsGood
                 string list = string.Join("\n  • ", unmatched.Take(maxShown));
                 if (unmatched.Count > maxShown)
                     list += $"\n  … and {unmatched.Count - maxShown} more";
-                MessageBox.Show(
+                UI.Dialog.Show(
                     $"Matched {matched} of {matched + unmatched.Count} scraped trophies by name.\n\n"
                         + "These names matched no trophy and were skipped:\n  • "
                         + list,
@@ -1042,7 +1058,7 @@ namespace PS3TrophyIsGood
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                UI.Dialog.Show(ex.Message);
             }
         }
 
@@ -1169,11 +1185,78 @@ namespace PS3TrophyIsGood
             }
         }
 
-        // Rows keep their own (themed) colors; only the headers need custom drawing.
-        private void listViewEx1_DrawItem(object sender, DrawListViewItemEventArgs e) => e.DrawDefault = true;
+        // Full owner-draw of the rows: PlayStation-blue selection, per-state text colour, and a
+        // metal-coloured Type cell. In Details view every cell is painted in DrawSubItem.
+        private void listViewEx1_DrawItem(object sender, DrawListViewItemEventArgs e)
+        {
+            // Intentionally empty — DrawSubItem paints each cell (which tiles the whole row).
+        }
 
-        private void listViewEx1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e) =>
-            e.DrawDefault = true;
+        private void listViewEx1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+        {
+            bool selected = e.Item.Selected;
+            Color back = selected ? UI.Theme.Accent : e.Item.BackColor;
+            using (var b = new SolidBrush(back))
+                e.Graphics.FillRectangle(b, e.Bounds);
+
+            Color fore = selected ? Color.White : e.Item.ForeColor;
+
+            // Column 0 = trophy icon + name.
+            if (e.ColumnIndex == 0)
+            {
+                int x = e.Bounds.X + 4;
+                var imgs = listViewEx1.SmallImageList;
+                if (imgs != null && e.Item.ImageIndex >= 0 && e.Item.ImageIndex < imgs.Images.Count)
+                {
+                    int sz = imgs.ImageSize.Height;
+                    int y = e.Bounds.Y + (e.Bounds.Height - sz) / 2;
+                    e.Graphics.DrawImage(imgs.Images[e.Item.ImageIndex], new Rectangle(x, y, sz, sz));
+                    x += sz + 8;
+                }
+                var nameRect = new Rectangle(x, e.Bounds.Y, e.Bounds.Right - x - 4, e.Bounds.Height);
+                TextRenderer.DrawText(
+                    e.Graphics, e.Item.Text, UI.Theme.UiFont, nameRect, fore,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
+                );
+                return;
+            }
+
+            // Type column gets its metal colour (unless the row is selected → keep white for contrast).
+            if (e.ColumnIndex == 2 && !selected)
+                fore = MetalColor(e.SubItem.Text);
+
+            TextFormatFlags hAlign =
+                e.Header.TextAlign == HorizontalAlignment.Center
+                    ? TextFormatFlags.HorizontalCenter
+                    : e.Header.TextAlign == HorizontalAlignment.Right
+                        ? TextFormatFlags.Right
+                        : TextFormatFlags.Left;
+            var cellRect = new Rectangle(e.Bounds.X + 4, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height);
+            TextRenderer.DrawText(
+                e.Graphics, e.SubItem.Text, UI.Theme.UiFont, cellRect, fore,
+                hAlign | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
+            );
+        }
+
+        /// <summary>Maps a PS3 trophy-type letter (P/G/S/B) to its metal colour.</summary>
+        private static Color MetalColor(string ttype)
+        {
+            if (string.IsNullOrEmpty(ttype))
+                return UI.Theme.Text;
+            switch (char.ToUpperInvariant(ttype[0]))
+            {
+                case 'P':
+                    return Color.FromArgb(0x6F, 0xC8, 0xF0); // platinum — cyan-blue
+                case 'G':
+                    return Color.FromArgb(0xF0, 0xC4, 0x40); // gold
+                case 'S':
+                    return Color.FromArgb(0xC4, 0xCC, 0xD4); // silver
+                case 'B':
+                    return Color.FromArgb(0xCD, 0x7F, 0x32); // bronze
+                default:
+                    return UI.Theme.Text;
+            }
+        }
 
         /// <summary>
         /// Builds the bottom-docked color legend explaining the row background colors set in
@@ -1182,23 +1265,64 @@ namespace PS3TrophyIsGood
         /// </summary>
         private void BuildColorLegend()
         {
-            var legend = new FlowLayoutPanel
+            var bar = new Panel
             {
                 Dock = DockStyle.Bottom,
+                Height = 30,
+                BackColor = UI.Theme.Panel,
+            };
+
+            var legend = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Left,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(8, 4, 8, 4),
+                Padding = new Padding(10, 4, 8, 4),
                 BackColor = UI.Theme.Panel,
             };
-
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowUnlockedBack, "Unlocked"));
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowSyncedBack, "Synced"));
             legend.Controls.Add(MakeLegendEntry(UI.Theme.RowLockedBack, "Locked"));
 
-            Controls.Add(legend);
-            legend.BringToFront();
+            statusLabel = new Label
+            {
+                Dock = DockStyle.Right,
+                Width = 420,
+                TextAlign = ContentAlignment.MiddleRight,
+                ForeColor = UI.Theme.TextMuted,
+                BackColor = UI.Theme.Panel,
+                Padding = new Padding(0, 0, 12, 0),
+            };
+
+            bar.Controls.Add(legend);
+            bar.Controls.Add(statusLabel);
+            Controls.Add(bar);
+            bar.BringToFront();
+
+            // Empty-state overlay: shown over the (Dock=Fill) list when no game is loaded.
+            emptyHint = new Label
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = UI.Theme.TextMuted,
+                BackColor = UI.Theme.Surface,
+                Font = new Font("Segoe UI", 11F),
+                Text = "Open a trophy folder  —  File ▸ Open, or drag a folder here",
+            };
+            Controls.Add(emptyHint);
+            emptyHint.BringToFront();
+        }
+
+        /// <summary>Shows the empty-state overlay only when no trophies are loaded.</summary>
+        private void UpdateEmptyHint()
+        {
+            if (emptyHint == null)
+                return;
+            emptyHint.Visible = listViewEx1.Items.Count == 0;
+            if (emptyHint.Visible)
+                emptyHint.BringToFront();
         }
 
         private static Control MakeLegendEntry(Color color, string text)
