@@ -15,15 +15,16 @@ namespace PS3TrophiesIsPerfect
         public MainWindow()
         {
             InitializeComponent();
-            Loaded += (s, e) => AllowDragDropAcrossElevation();
         }
 
         /// <summary>
         /// When the app runs elevated, Windows' UIPI blocks drag-drop from a normal-integrity Explorer.
-        /// Explicitly allow the drag-drop window messages so dropping a folder works even as admin.
+        /// Best-effort: allow the drag-drop window messages so a folder drop can work even as admin.
+        /// (The reliable fix is simply running the app non-elevated.)
         /// </summary>
-        private void AllowDragDropAcrossElevation()
+        protected override void OnSourceInitialized(EventArgs e)
         {
+            base.OnSourceInitialized(e);
             const uint MSGFLT_ALLOW = 1;
             IntPtr hwnd = new WindowInteropHelper(this).Handle;
             foreach (uint msg in new uint[] { 0x0233 /*WM_DROPFILES*/, 0x004A /*WM_COPYDATA*/, 0x0049 /*WM_COPYGLOBALDATA*/ })

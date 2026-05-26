@@ -83,11 +83,12 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Width="64" Height="64" CornerRadius="12" Background="#10FFFFFF"
+                <Border Grid.Column="0" Width="100" Height="56" CornerRadius="8" Background="#10FFFFFF"
                         ClipToBounds="True">
                     <Grid>
-                        <ui:FontIcon Glyph="&#xE735;" FontSize="30" Foreground="{StaticResource Accent}" />
-                        <Image Source="{Binding GameIcon}" Stretch="UniformToFill" />
+                        <ui:FontIcon Glyph="&#xE735;" FontSize="28" Foreground="{StaticResource Accent}" />
+                        <Image Source="{Binding GameIcon}" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
                     </Grid>
                 </Border>
 
@@ -132,13 +133,12 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn Header="Type" Width="70">
+                        <DataGridTemplateColumn Header="Type" Width="64">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Border CornerRadius="9" Padding="10,2" HorizontalAlignment="Center"
-                                            VerticalAlignment="Center" Background="{Binding TypeBrush}">
-                                        <TextBlock Text="{Binding Type}" FontWeight="Bold" Foreground="#0D0D0D" />
-                                    </Border>
+                                    <Image Source="{Binding TypeBadge}" Width="26" Height="26"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

@@ -168,7 +168,7 @@ namespace PS3TrophiesIsPerfect.Services
                     Synced = synced,
                     Time = got ? time : null,
                     Elapsed = diffs.TryGetValue(i, out string d) ? d : string.Empty,
-                    Icon = LoadIcon(i),
+                    Icon = LoadIcon(_tconf[i].id),
                 });
             }
             return rows;
@@ -181,11 +181,11 @@ namespace PS3TrophiesIsPerfect.Services
             return ttype.Substring(0, 1).ToUpperInvariant();
         }
 
-        private System.Windows.Media.ImageSource LoadIcon(int id)
+        private System.Windows.Media.ImageSource LoadIcon(int tropId)
         {
             try
             {
-                string file = Path.Combine(_path, "TROP" + id.ToString("000") + ".PNG");
+                string file = Path.Combine(_path, "TROP" + tropId.ToString("000") + ".PNG");
                 return ImageLoad.FromFile(file);
             }
             catch { return null; }
