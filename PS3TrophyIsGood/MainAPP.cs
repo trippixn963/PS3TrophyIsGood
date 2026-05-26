@@ -731,7 +731,9 @@ namespace PS3TrophyIsGood
         ///    matching their spacing.
         ///  • Gaps that won't fit a night roll forward whole nights (the daytime break), sometimes a day
         ///    off, never landing on a gap shorter than the donor's.
-        ///  • The platinum pops 1–8 s after its trigger trophy (plausible auto-pop, not cloned).
+        ///  • The platinum pops 1–8 s after its trigger trophy (plausible auto-pop, not cloned), and the
+        ///    whole run is shifted so the platinum lands on TODAY (never before), inserting extra days-off
+        ///    if needed to still reach back to the chosen start date. Nothing is placed in the future.
         /// Mutates <paramref name="times"/> in place.
         /// </summary>
         private void MaybeRelocateToNightSessions(List<long> times)
@@ -747,6 +749,7 @@ namespace PS3TrophyIsGood
             const int LullMinMinutes = 15;
             const int LullMaxMinutes = 50;
             const int DayOffChancePercent = 15; // when rolling nights, sometimes skip an extra day
+            const long DaySeconds = 24L * 3600L;
 
             var nonzero = times.Where(t => t != 0).ToList();
             if (nonzero.Count == 0)
@@ -754,19 +757,20 @@ namespace PS3TrophyIsGood
 
             if (
                 MessageBox.Show(
-                    "Rebuild this run as realistic nightly play sessions (~10pm onward, while your account "
-                        + "is otherwise idle)?\n\n"
-                        + "Trophies that popped seconds apart stay tight; every other gap is the donor's "
-                        + "gap plus a few random minutes — always a bit SLOWER than the donor (vital for "
-                        + "speedrun donors) and never a 1:1 copy of their timeline.\n\n"
-                        + "Yes = pick the first night.    No = keep the original dates.",
+                    "Rebuild this run as realistic nightly play sessions that END with the platinum earned "
+                        + "TODAY?\n\n"
+                        + "You pick roughly when the run started; it fills the nights up to today and finishes "
+                        + "with the platinum in the most recent session. Bursts stay tight; every other gap is "
+                        + "the donor's gap plus a few minutes (always SLOWER than the donor); the platinum date "
+                        + "is never before today.\n\n"
+                        + "Yes = pick the start date.    No = keep the original dates.",
                     "Relocate to night sessions",
                     MessageBoxButtons.YesNo
                 ) != DialogResult.Yes
             )
                 return;
 
-            dtpfForInstant.Title.Text = "First night — start date";
+            dtpfForInstant.Title.Text = "Roughly when did the run start?";
             if (dtpfForInstant.ShowDialog() != DialogResult.OK)
                 return;
             DateTime startDate = dtpfForInstant.dateTimePicker1.Value.Date;
@@ -789,6 +793,7 @@ namespace PS3TrophyIsGood
             DateTime nightStart = BeginNight(startDate);
             int nightLength = rand.Next(MinSessionMinutes, MaxSessionMinutes + 1);
             DateTime cursor = nightStart;
+            var rolloverAt = new List<int>(); // seq positions that begin a fresh night
 
             if (seq.Count > 0)
                 times[seq[0].Key] = ToUnix(cursor);
@@ -829,13 +834,15 @@ namespace PS3TrophyIsGood
                         nightLength = rand.Next(MinSessionMinutes, MaxSessionMinutes + 1);
                     }
                     cursor = nightStart;
+                    rolloverAt.Add(k);
                 }
                 times[seq[k].Key] = ToUnix(cursor);
             }
 
             // The platinum (index 0) auto-pops moments after its last required trophy — place it 1–8 s
             // after its chronological predecessor: plausible, and not a copy of the donor's exact offset.
-            if (tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0)
+            bool platEarned = tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0;
+            if (platEarned)
             {
                 long platOrig = original[0];
                 int prevIdx = -1;
@@ -848,16 +855,63 @@ namespace PS3TrophyIsGood
                     }
                 if (prevIdx >= 0)
                     times[0] = times[prevIdx] + rand.Next(1, 9);
+                else
+                    platEarned = false;
             }
 
-            long resultFirst = times.Where(t => t != 0).DefaultIfEmpty(0).Min();
-            long resultLast = times.Where(t => t != 0).DefaultIfEmpty(0).Max();
+            // Stretch with extra days-off so the run still reaches back to the chosen start while ending
+            // today. We can only lengthen the breaks (never shorten a gap — that would make us faster than
+            // the donor), so this only applies when the chosen start is further back than the run needs.
+            long minBuilt = times.Where(t => t != 0).Min();
+            long maxBuilt = times.Where(t => t != 0).Max();
+            int naturalSpanDays = (int)((maxBuilt - minBuilt) / DaySeconds);
+            int windowDays = (int)(DateTime.Today - startDate).TotalDays;
+            int extraDays = windowDays - naturalSpanDays;
+            if (extraDays > 0 && rolloverAt.Count > 0)
+            {
+                int r = rolloverAt.Count;
+                int rIdx = 0;
+                long cumExtra = 0;
+                for (int k = 0; k < seq.Count; k++)
+                {
+                    while (rIdx < r && rolloverAt[rIdx] <= k)
+                    {
+                        cumExtra += extraDays / r + (rIdx < extraDays % r ? 1 : 0);
+                        rIdx++;
+                    }
+                    times[seq[k].Key] += cumExtra * DaySeconds;
+                }
+            }
+
+            // Slide the whole run by whole days so the platinum (or last unlock) lands on TODAY, keeping
+            // the night time-of-day intact.
+            long anchor = platEarned ? times[0] : times.Where(t => t != 0).Max();
+            long shift = (long)(DateTime.Today - anchor.TimeStampToDateTime().Date).Days * DaySeconds;
+            for (int i = 0; i < times.Count; i++)
+                if (times[i] != 0)
+                    times[i] += shift;
+
+            // Never let anything sit in the future — pull back whole days until the last pop is at/just
+            // before "now" (the early-morning session lands on today in normal daytime use).
+            long nowUnix = ToUnix(DateTime.Now);
+            long curMax = times.Where(t => t != 0).Max();
+            while (curMax > nowUnix)
+            {
+                for (int i = 0; i < times.Count; i++)
+                    if (times[i] != 0)
+                        times[i] -= DaySeconds;
+                curMax -= DaySeconds;
+            }
+
+            long firstUnlock = times.Where(t => t != 0).Min();
+            long lastUnlock = times.Where(t => t != 0).Max();
             MessageBox.Show(
-                "Rebuilt as nightly sessions — always a touch slower than the donor, never a 1:1 copy.\n\n"
-                    + "First unlock: "
-                    + resultFirst.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
-                    + "\nLast unlock:  "
-                    + resultLast.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
+                "Rebuilt as nightly sessions — slower than the donor, never a 1:1 copy, "
+                    + (platEarned ? "platinum" : "last trophy")
+                    + " earned today.\n\nStarted:   "
+                    + firstUnlock.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
+                    + "\nFinished:  "
+                    + lastUnlock.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
                 "Relocate to night sessions"
             );
         }
