@@ -34,6 +34,7 @@ namespace PS3TrophyIsGood
         public CopyFrom()
         {
             InitializeComponent();
+            UI.Theme.Apply(this);
         }
 
         private void accept_Click(object sender, EventArgs e)

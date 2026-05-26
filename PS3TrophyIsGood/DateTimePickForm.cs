@@ -5,6 +5,7 @@ namespace PS3TrophyIsGood {
     public partial class DateTimePickForm : Form {
         public DateTimePickForm(DateTime lastSyncTime) {
             InitializeComponent();
+            UI.Theme.Apply(this);
             ps3Time = lastSyncTime;
             dateTimePicker1.CustomFormat = Properties.strings.DateFormatString;
         }

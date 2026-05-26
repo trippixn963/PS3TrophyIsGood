@@ -111,6 +111,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resource1.resx</DependentUpon>
     </Compile>
+    <Compile Include="UI\Theme.cs" />
+    <Compile Include="UI\DarkToolStripRenderer.cs" />
     <Compile Include="Utility.cs" />
     <EmbeddedResource Include="CopyFrom.pt-BR.resx">
       <DependentUpon>CopyFrom.cs</DependentUpon>

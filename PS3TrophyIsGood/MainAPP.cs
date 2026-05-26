@@ -55,6 +55,11 @@ namespace PS3TrophyIsGood
             Thread.CurrentThread.CurrentCulture = curinfo;
             Thread.CurrentThread.CurrentUICulture = curinfo;
             InitializeComponent();
+            UI.Theme.Apply(this);
+            listViewEx1.OwnerDraw = true; // dark-render the column headers (WinForms headers ignore BackColor)
+            listViewEx1.DrawColumnHeader += listViewEx1_DrawColumnHeader;
+            listViewEx1.DrawItem += listViewEx1_DrawItem;
+            listViewEx1.DrawSubItem += listViewEx1_DrawSubItem;
             BuildColorLegend();
             toolStripComboBox1.SelectedIndexChanged -= toolStripComboBox1_SelectedIndexChanged;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.Language;
@@ -184,7 +189,8 @@ namespace PS3TrophyIsGood
                 tpsn.DeleteTrophyByID(trophyId);
                 tusr.LockTrophy(trophyId);
                 lvi.SubItems[4].Text = Properties.strings.no;
-                lvi.BackColor = Color.LightGray;
+                lvi.BackColor = UI.Theme.RowLockedBack;
+                lvi.ForeColor = UI.Theme.RowLockedText;
                 lvi.SubItems[6].Text = string.Empty;
                 CompletionRates();
                 RefreshTimeDiffColumn();
@@ -208,7 +214,8 @@ namespace PS3TrophyIsGood
                         tpsn.PutTrophy(trophyId, tusr.trophyTypeTable[trophyId].Type, trophyTime);
                         tusr.UnlockTrophy(trophyId, trophyTime);
                         lvi.SubItems[4].Text = Properties.strings.yes;
-                        lvi.BackColor = Color.White;
+                        lvi.BackColor = UI.Theme.RowUnlockedBack;
+                        lvi.ForeColor = UI.Theme.RowUnlockedText;
                         lvi.SubItems[6].Text = trophyTime.ToString(Properties.strings.DateFormatString);
                         CompletionRates();
                         RefreshTimeDiffColumn();
@@ -282,7 +289,16 @@ namespace PS3TrophyIsGood
                     lvi.SubItems.Add(Properties.strings.yes);
                     lvi.SubItems.Add(tpsn[i].Value.IsSync ? Properties.strings.yes : Properties.strings.no);
                     lvi.SubItems.Add(tpsn[i].Value.Time.ToString(Properties.strings.DateFormatString));
-                    lvi.BackColor = (tpsn[i].Value.IsSync ? Color.LightPink : lvi.BackColor = Color.White);
+                    if (tpsn[i].Value.IsSync)
+                    {
+                        lvi.BackColor = UI.Theme.RowSyncedBack;
+                        lvi.ForeColor = UI.Theme.RowSyncedText;
+                    }
+                    else
+                    {
+                        lvi.BackColor = UI.Theme.RowUnlockedBack;
+                        lvi.ForeColor = UI.Theme.RowUnlockedText;
+                    }
                 }
                 else
                 {
@@ -297,11 +313,20 @@ namespace PS3TrophyIsGood
                     lvi.SubItems.Add(tropTimeTxt);
 
                     if (tusr.trophyTimeInfoTable[i].IsSync)
-                        lvi.BackColor = Color.LightPink;
+                    {
+                        lvi.BackColor = UI.Theme.RowSyncedBack;
+                        lvi.ForeColor = UI.Theme.RowSyncedText;
+                    }
                     else if (tusr.trophyTimeInfoTable[i].IsGet)
-                        lvi.BackColor = Color.White;
+                    {
+                        lvi.BackColor = UI.Theme.RowUnlockedBack;
+                        lvi.ForeColor = UI.Theme.RowUnlockedText;
+                    }
                     else
-                        lvi.BackColor = Color.LightGray;
+                    {
+                        lvi.BackColor = UI.Theme.RowLockedBack;
+                        lvi.ForeColor = UI.Theme.RowLockedText;
+                    }
                 }
                 if (tconf[i].gid == 0)
                 {
@@ -1042,7 +1067,7 @@ namespace PS3TrophyIsGood
 
             listViewEx1.ListViewItemSorter = new ListViewItemComparer(e.Column, _sortOrder);
             listViewEx1.Sort();
-            SetSortArrow(_sortColumn, _sortOrder);
+            listViewEx1.Invalidate(); // redraw the owner-drawn headers so the sort arrow moves
         }
 
         /// <summary>
@@ -1081,64 +1106,50 @@ namespace PS3TrophyIsGood
             }
         }
 
-        // --- Native sort-arrow glyph on the list's header (no managed WinForms API exists for this) ---
-        private const int LVM_FIRST = 0x1000;
-        private const int LVM_GETHEADER = LVM_FIRST + 31;
-        private const int HDM_FIRST = 0x1200;
-        private const int HDM_GETITEM = HDM_FIRST + 11;
-        private const int HDM_SETITEM = HDM_FIRST + 12;
-        private const int HDI_FORMAT = 0x0004;
-        private const int HDF_SORTUP = 0x0400;
-        private const int HDF_SORTDOWN = 0x0200;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct HDITEM
+        // --- Dark owner-drawn column headers (WinForms ListView headers ignore BackColor) ---
+        private void listViewEx1_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)
         {
-            public int mask;
-            public int cxy;
-            public IntPtr pszText;
-            public IntPtr hbm;
-            public int cchTextMax;
-            public int fmt;
-            public IntPtr lParam;
-            public int iImage;
-            public int iOrder;
-            public uint type;
-            public IntPtr pvFilter;
-            public uint state;
-        }
+            using (var bg = new SolidBrush(UI.Theme.Panel))
+                e.Graphics.FillRectangle(bg, e.Bounds);
+            using (var pen = new Pen(UI.Theme.Border))
+                e.Graphics.DrawLine(
+                    pen,
+                    e.Bounds.Left,
+                    e.Bounds.Bottom - 1,
+                    e.Bounds.Right,
+                    e.Bounds.Bottom - 1
+                );
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+            var textBounds = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 26, e.Bounds.Height);
+            TextRenderer.DrawText(
+                e.Graphics,
+                e.Header.Text,
+                UI.Theme.UiFont,
+                textBounds,
+                UI.Theme.Text,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
+            );
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, ref HDITEM lParam);
-
-        /// <summary>
-        /// Puts the up/down sort glyph on <paramref name="sortColumn"/>'s header and clears it from every
-        /// other column.
-        /// </summary>
-        private void SetSortArrow(int sortColumn, SortOrder order)
-        {
-            if (!listViewEx1.IsHandleCreated)
-                return;
-
-            IntPtr header = SendMessage(listViewEx1.Handle, LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
-            if (header == IntPtr.Zero)
-                return;
-
-            for (int i = 0; i < listViewEx1.Columns.Count; i++)
+            if (e.ColumnIndex == _sortColumn)
             {
-                var hd = new HDITEM { mask = HDI_FORMAT };
-                SendMessage(header, HDM_GETITEM, (IntPtr)i, ref hd);
-
-                hd.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
-                if (i == sortColumn && order != SortOrder.None)
-                    hd.fmt |= order == SortOrder.Ascending ? HDF_SORTUP : HDF_SORTDOWN;
-
-                SendMessage(header, HDM_SETITEM, (IntPtr)i, ref hd);
+                string glyph = _sortOrder == SortOrder.Descending ? "▼" : "▲";
+                var arrowBounds = new Rectangle(e.Bounds.Right - 18, e.Bounds.Y, 16, e.Bounds.Height);
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    glyph,
+                    UI.Theme.UiFont,
+                    arrowBounds,
+                    UI.Theme.Accent,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter
+                );
             }
         }
+
+        // Rows keep their own (themed) colors; only the headers need custom drawing.
+        private void listViewEx1_DrawItem(object sender, DrawListViewItemEventArgs e) => e.DrawDefault = true;
+
+        private void listViewEx1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e) =>
+            e.DrawDefault = true;
 
         /// <summary>
         /// Builds the bottom-docked color legend explaining the row background colors set in
@@ -1154,13 +1165,13 @@ namespace PS3TrophyIsGood
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(6, 3, 6, 3),
-                BackColor = SystemColors.Control,
+                Padding = new Padding(8, 4, 8, 4),
+                BackColor = UI.Theme.Panel,
             };
 
-            legend.Controls.Add(MakeLegendEntry(Color.White, "Unlocked"));
-            legend.Controls.Add(MakeLegendEntry(Color.LightPink, "Synced"));
-            legend.Controls.Add(MakeLegendEntry(Color.LightGray, "Locked"));
+            legend.Controls.Add(MakeLegendEntry(UI.Theme.RowUnlockedBack, "Unlocked"));
+            legend.Controls.Add(MakeLegendEntry(UI.Theme.RowSyncedBack, "Synced"));
+            legend.Controls.Add(MakeLegendEntry(UI.Theme.RowLockedBack, "Locked"));
 
             Controls.Add(legend);
             legend.BringToFront();
@@ -1187,6 +1198,7 @@ namespace PS3TrophyIsGood
             {
                 Text = text,
                 AutoSize = true,
+                ForeColor = UI.Theme.Text,
                 Margin = new Padding(0, 3, 0, 0),
             });
             return entry;
