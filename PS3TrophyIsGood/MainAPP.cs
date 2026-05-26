@@ -728,16 +728,16 @@ namespace PS3TrophyIsGood
         ///  • Trophies sit only inside nightly sessions starting ~10pm (with per-night jitter) and running
         ///    a randomized 2.5–5 h, so the time-of-day is consistent but not robotic and never bleeds into
         ///    the daytime hours where the real account is active.
-        ///  • Burst pops (≤60s apart) stay tight stacks but get a 0–2 s nudge so the sub-second pattern
-        ///    isn't bit-identical to the donor.
+        ///  • Burst pops (≤60s apart — stacks / story trophies, and the platinum) keep their EXACT scraped
+        ///    sub-second gaps (strict rule; these must match the donor 100%).
         ///  • Every other gap is the donor's gap PLUS a few random minutes (occasionally a longer grind
         ///    lull) — always a touch SLOWER than the donor (key when donors are speedrunners) and never
         ///    matching their spacing.
         ///  • Gaps that won't fit a night roll forward whole nights (the daytime break), sometimes a day
         ///    off, never landing on a gap shorter than the donor's.
-        ///  • The platinum pops 1–8 s after its trigger trophy (plausible auto-pop, not cloned), and the
-        ///    whole run is shifted so the platinum lands on TODAY (never before), inserting extra days-off
-        ///    if needed to still reach back to the chosen start date. Nothing is placed in the future.
+        ///  • The platinum keeps its EXACT scraped gap to its trigger trophy, and the whole run is shifted
+        ///    so the platinum lands on TODAY (never before), inserting extra days-off if needed to still
+        ///    reach back to the chosen start date. Nothing is placed in the future.
         /// Mutates <paramref name="times"/> in place.
         /// </summary>
         private void MaybeRelocateToNightSessions(List<long> times)
@@ -807,8 +807,9 @@ namespace PS3TrophyIsGood
                 long gap = seq[k].Value - seq[k - 1].Value;
                 if (gap <= BurstGapSeconds)
                 {
-                    // Stack / story burst: stay tight, but nudge 0–2 s so it isn't bit-identical to donor.
-                    cursor = cursor.AddSeconds(gap + rand.Next(0, 3));
+                    // Stack / story burst: keep the donor's EXACT sub-minute offset (strict rule — these
+                    // must match the donor 100%, including the platinum's pop gap below).
+                    cursor = cursor.AddSeconds(gap);
                     times[seq[k].Key] = ToUnix(cursor);
                     continue;
                 }
@@ -843,8 +844,8 @@ namespace PS3TrophyIsGood
                 times[seq[k].Key] = ToUnix(cursor);
             }
 
-            // The platinum (index 0) auto-pops moments after its last required trophy — place it 1–8 s
-            // after its chronological predecessor: plausible, and not a copy of the donor's exact offset.
+            // The platinum (index 0) auto-pops right after its last required trophy. Its gap to that
+            // trophy must match the donor EXACTLY (strict rule) — never randomized.
             bool platEarned = tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0;
             if (platEarned)
             {
@@ -858,7 +859,7 @@ namespace PS3TrophyIsGood
                         prevIdx = i;
                     }
                 if (prevIdx >= 0)
-                    times[0] = times[prevIdx] + rand.Next(1, 9);
+                    times[0] = times[prevIdx] + (platOrig - prevOrig); // exact donor plat gap (strict rule)
                 else
                     platEarned = false;
             }
