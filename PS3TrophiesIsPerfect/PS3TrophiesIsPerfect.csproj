@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>PS3TrophiesIsPerfect</RootNamespace>
+    <AssemblyName>PS3TrophiesIsPerfect</AssemblyName>
+    <Product>PS3TrophiesIsPerfect</Product>
+    <AssemblyTitle>PS3TrophiesIsPerfect</AssemblyTitle>
+    <LangVersion>latest</LangVersion>
+    <UseWindowsForms>false</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Modern Fluent (Win10/11) styling for WPF; net48-compatible. -->
+    <PackageReference Include="ModernWpfUI" Version="0.9.6" />
+    <!-- net48 reference assemblies so this builds under the .NET SDK without VS installed. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- FROZEN CORE: reference the prebuilt save-data DLLs directly so they are never recompiled. -->
+    <Reference Include="TROPHYParser">
+      <HintPath>..\TROPHYParser\TROPHYParser\bin\Debug\TROPHYParser.exe</HintPath>
+    </Reference>
+    <Reference Include="BigEndianTool">
+      <HintPath>..\BigEndianTool\BigEndianTool\bin\Debug\BigEndianTool.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
