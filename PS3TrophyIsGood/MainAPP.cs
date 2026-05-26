@@ -726,9 +726,9 @@ namespace PS3TrophyIsGood
         /// Rebuilds an imported unlock sequence as realistic nightly play sessions spanning the user's
         /// chosen start date through today, finishing with the platinum earned today:
         ///  • The sequence is split into nightly sessions (a few hours each). The FIRST session lands on
-        ///    the chosen start date; the platinum's session lands TODAY (early morning, so it's recent but
-        ///    never in the future); the middle sessions are spread across the nights between, days off
-        ///    filling the rest.
+        ///    the chosen start date; the platinum is "just earned" — the final session ends a few minutes
+        ///    before NOW (so syncing right after looks like a fresh plat, never in the future); the middle
+        ///    sessions are spread across the nights between, days off filling the rest.
         ///  • Each session sits in the overnight slot (~10pm onward), never the active daytime hours.
         ///  • Burst pops (≤60s — stacks / story trophies, and the platinum's pop) keep their EXACT scraped
         ///    gaps (strict rule, 100% match). Every other gap is the donor's gap PLUS a few minutes
@@ -873,18 +873,14 @@ namespace PS3TrophyIsGood
                     times[seq[k].Key] = ToUnix(ns.AddSeconds(relOffset[k]));
             }
 
-            // 4) Final session: anchor the LAST trophy (the platinum) to today, early morning and never in
-            //    the future, then lay the session's trophies relative to it (the session starts the evening
-            //    before). This guarantees the platinum's date is today and its time is in the night slot.
+            // 4) Final session: the platinum is "just earned". Anchor the LAST trophy to right NOW (minus
+            //    a small buffer), so it looks like the user finished an offline session moments ago and is
+            //    about to sync. The session leads up to it. Never in the future.
             {
                 int from = sessionStart[lead];
                 int last = seq.Count - 1;
                 long finalDuration = relOffset[last];
-                DateTime morning = DateTime
-                    .Today.AddMinutes(rand.Next(30, 211))
-                    .AddSeconds(rand.Next(0, 60)); // today ~00:30–03:30, off the :00 second
-                DateTime nowBuf = DateTime.Now.AddMinutes(-rand.Next(5, 31));
-                DateTime platTarget = morning <= nowBuf ? morning : nowBuf; // today, and not in the future
+                DateTime platTarget = DateTime.Now.AddSeconds(-rand.Next(30, 301)); // earned ~0.5–5 min ago
                 DateTime finalStart = platTarget.AddSeconds(-finalDuration);
                 for (int k = from; k <= last; k++)
                     times[seq[k].Key] = ToUnix(finalStart.AddSeconds(relOffset[k]));
@@ -923,9 +919,9 @@ namespace PS3TrophyIsGood
             long firstUnlock = times.Where(t => t != 0).Min();
             long lastUnlock = times.Where(t => t != 0).Max();
             MessageBox.Show(
-                $"Rebuilt across {sessions} night(s) — slower than the donor, never a 1:1 copy, "
+                $"Rebuilt across {sessions} session(s) — slower than the donor, never a 1:1 copy, "
                     + (platEarned ? "platinum" : "last trophy")
-                    + " earned today.\n\nStarted:   "
+                    + " earned just now.\n\nStarted:   "
                     + firstUnlock.TimeStampToDateTime().ToString(Properties.strings.DateFormatString)
                     + "\nFinished:  "
                     + lastUnlock.TimeStampToDateTime().ToString(Properties.strings.DateFormatString),
