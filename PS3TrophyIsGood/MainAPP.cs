@@ -397,25 +397,27 @@ namespace PS3TrophyIsGood
             {
                 switch ((TropType)tusr.trophyTypeTable[i].Type)
                 {
+                    // Completion is based on trophies EARNED (have a timestamp), not synced — the user
+                    // sets timestamps locally and syncs to PSN separately, so sync-based would read 0%.
                     case TropType.Platinum:
                         totalGrade += (int)TropGrade.Platinum;
-                        getGrade += IsTrophySync(i) ? (int)TropGrade.Platinum : 0;
+                        getGrade += IsTrophyGot(i) ? (int)TropGrade.Platinum : 0;
                         break;
                     case TropType.Gold:
                         totalGrade += (int)TropGrade.Gold;
-                        getGrade += IsTrophySync(i) ? (int)TropGrade.Gold : 0;
+                        getGrade += IsTrophyGot(i) ? (int)TropGrade.Gold : 0;
                         break;
                     case TropType.Silver:
                         totalGrade += (int)TropGrade.Silver;
-                        getGrade += IsTrophySync(i) ? (int)TropGrade.Silver : 0;
+                        getGrade += IsTrophyGot(i) ? (int)TropGrade.Silver : 0;
                         break;
                     case TropType.Bronze:
                         totalGrade += (int)TropGrade.Bronze;
-                        getGrade += IsTrophySync(i) ? (int)TropGrade.Bronze : 0;
+                        getGrade += IsTrophyGot(i) ? (int)TropGrade.Bronze : 0;
                         break;
                 }
 
-                if (IsTrophySync(i)) isGetTrophyNumber++;
+                if (IsTrophyGot(i)) isGetTrophyNumber++;
             }
             progressBar1.Maximum = totalGrade;
             progressBar1.Value = getGrade;
