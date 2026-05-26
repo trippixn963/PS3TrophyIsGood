@@ -738,7 +738,7 @@ namespace PS3TrophyIsGood
         private void MaybeRelocateToNightSessions(List<long> times)
         {
             const int SessionStartHour = 22; // sessions begin ~10pm — change to move the nightly window
-            const int NightStartJitterMinutes = 45;
+            const int NightStartJitterMinutes = 75; // start spread over [10:00pm, 11:15pm]
             const int MinSessionMinutes = 150; // each night holds ~2.5–5 h of play
             const int MaxSessionMinutes = 300;
             const long BurstGapSeconds = 60; // gaps this small are stacks / story pops — kept exact
@@ -829,16 +829,27 @@ namespace PS3TrophyIsGood
             int lead = sessions - 1; // non-final session count
             if (lead >= 1)
             {
-                int avail = Math.Max(0, (int)(DateTime.Today.AddDays(-2) - startDate).TotalDays);
-                if (lead - 1 <= avail)
+                // First non-final session is the chosen start date; the rest land on RANDOM distinct days
+                // in (startDate, today-2] — random, not evenly spaced, so play nights look human rather
+                // than metronomic. (today-1/today are reserved for the final session's overnight tail.)
+                nightDay[0] = startDate;
+                int availDays = Math.Max(0, (int)(DateTime.Today.AddDays(-2) - startDate).TotalDays);
+                if (lead - 1 <= availDays)
                 {
-                    for (int s = 0; s < lead; s++)
+                    var offsets = new List<int>();
+                    for (int d = 1; d <= availDays; d++)
+                        offsets.Add(d);
+                    for (int i = offsets.Count - 1; i > 0; i--) // Fisher–Yates shuffle
                     {
-                        int d = lead == 1 ? 0 : (int)Math.Round((double)s * avail / (lead - 1));
-                        nightDay[s] = startDate.AddDays(d);
-                        if (s > 0 && nightDay[s] <= nightDay[s - 1])
-                            nightDay[s] = nightDay[s - 1].AddDays(1); // keep strictly increasing
+                        int j = rand.Next(i + 1);
+                        int tmp = offsets[i];
+                        offsets[i] = offsets[j];
+                        offsets[j] = tmp;
                     }
+                    var chosen = offsets.Take(lead - 1).ToList();
+                    chosen.Sort();
+                    for (int s = 1; s < lead; s++)
+                        nightDay[s] = startDate.AddDays(chosen[s - 1]);
                 }
                 else
                 {
@@ -856,7 +867,8 @@ namespace PS3TrophyIsGood
                 int to = sessionStart[s + 1] - 1;
                 DateTime ns = nightDay[s]
                     .AddHours(SessionStartHour)
-                    .AddMinutes(rand.Next(0, NightStartJitterMinutes + 1));
+                    .AddMinutes(rand.Next(0, NightStartJitterMinutes + 1))
+                    .AddSeconds(rand.Next(0, 60)); // real sessions don't begin exactly on the :00 second
                 for (int k = from; k <= to; k++)
                     times[seq[k].Key] = ToUnix(ns.AddSeconds(relOffset[k]));
             }
@@ -868,7 +880,9 @@ namespace PS3TrophyIsGood
                 int from = sessionStart[lead];
                 int last = seq.Count - 1;
                 long finalDuration = relOffset[last];
-                DateTime morning = DateTime.Today.AddMinutes(rand.Next(30, 211)); // today 00:30–03:30
+                DateTime morning = DateTime
+                    .Today.AddMinutes(rand.Next(30, 211))
+                    .AddSeconds(rand.Next(0, 60)); // today ~00:30–03:30, off the :00 second
                 DateTime nowBuf = DateTime.Now.AddMinutes(-rand.Next(5, 31));
                 DateTime platTarget = morning <= nowBuf ? morning : nowBuf; // today, and not in the future
                 DateTime finalStart = platTarget.AddSeconds(-finalDuration);
