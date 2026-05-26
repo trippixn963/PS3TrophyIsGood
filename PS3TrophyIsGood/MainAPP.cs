@@ -760,11 +760,30 @@ namespace PS3TrophyIsGood
             // Keep exact gaps if the run fits the window; otherwise compress proportionally to fill it.
             double factor = (donorSpan == 0 || donorSpan <= window) ? 1.0 : (double)window / donorSpan;
 
+            var original = new List<long>(times);
             for (int i = 0; i < times.Count; i++)
-                if (times[i] != 0)
-                    times[i] = startUnix + (long)Math.Round((times[i] - firstUnlock) * factor);
+                if (original[i] != 0)
+                    times[i] = startUnix + (long)Math.Round((original[i] - firstUnlock) * factor);
 
-            long resultLast = startUnix + (long)Math.Round(donorSpan * factor);
+            // The platinum (trophy index 0) auto-pops the instant its last required trophy unlocks, so the
+            // gap between it and the trophy right before it must stay EXACTLY as scraped — never scaled, or
+            // the platinum would look like it popped impossibly far from its trigger.
+            if (tconf != null && tconf.HasPlatinium && original.Count > 0 && original[0] != 0)
+            {
+                long platOrig = original[0];
+                int prevIdx = -1;
+                long prevOrig = long.MinValue;
+                for (int i = 1; i < original.Count; i++)
+                    if (original[i] != 0 && original[i] <= platOrig && original[i] > prevOrig)
+                    {
+                        prevOrig = original[i];
+                        prevIdx = i;
+                    }
+                if (prevIdx >= 0)
+                    times[0] = times[prevIdx] + (platOrig - prevOrig);
+            }
+
+            long resultLast = times.Where(t => t != 0).DefaultIfEmpty(0).Max();
             string mode =
                 factor >= 1.0
                     ? "real gaps kept (the run fit the window)"
