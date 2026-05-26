@@ -127,37 +127,37 @@
     <value>Danger</value>
   </data>
   <data name="DangerConfirm" xml:space="preserve">
-    <value>Instant Platinum's time will be the same, is easily identify by the PSN, we recommend manually modify time, even so do you wish to continue?</value>
+    <value>Instant Platinum sets every trophy to the same time, which PSN can easily flag. Setting times manually is recommended. Continue anyway?</value>
   </data>
   <data name="Delete" xml:space="preserve">
     <value>Delete Trophy</value>
   </data>
   <data name="DeleteTrophyConfirm" xml:space="preserve">
-    <value>This trophy will be deleted, sure?</value>
+    <value>Are you sure you want to delete this trophy?</value>
   </data>
   <data name="no" xml:space="preserve">
-    <value>no</value>
+    <value>No</value>
   </data>
   <data name="SyncedTrophyCanNotEdit" xml:space="preserve">
     <value>Trophy already synchronized. Can't be modified.</value>
   </data>
   <data name="yes" xml:space="preserve">
-    <value>yes</value>
+    <value>Yes</value>
   </data>
   <data name="CantLoclPlatinumBeforOther" xml:space="preserve">
-    <value>You can't lock other trophies while platinum is locked.</value>
+    <value>You can't lock other trophies while the platinum is unlocked.</value>
   </data>
   <data name="CantUnloclPlatinumBeforOther" xml:space="preserve">
-    <value>You can't unlock platinum when other thropy is unlocked.</value>
+    <value>You can't unlock the platinum while other trophies are still locked.</value>
   </data>
   <data name="RestartProgram" xml:space="preserve">
     <value>Please restart the program to apply the setting.</value>
   </data>
   <data name="RandomStartTime" xml:space="preserve">
-    <value>RandomStartTime</value>
+    <value>Random Start Time</value>
   </data>
   <data name="RandomEndTime" xml:space="preserve">
-    <value>RandomEndTime</value>
+    <value>Random End Time</value>
   </data>
   <data name="CantFindGame" xml:space="preserve">
     <value>Can't find game.</value>

@@ -15,7 +15,7 @@ namespace PS3TrophyIsGood
     public partial class CopyFrom : Form
     {
         /// <summary>
-        /// Class for havian a pair for use it later (you could do it generic as c++ Pair but to lazy
+        /// Holds a (trophy id, timestamp) pair. Could be a generic Pair like in C++, but kept simple.
         /// </summary>
         public class Pair
         {
@@ -94,7 +94,8 @@ namespace PS3TrophyIsGood
         }
 
         /// <summary>
-        /// This get the timestamp from a profile(asuming is a legit one) then modify them to looks like they are legit but not a comple copy
+        /// Gets the timestamps from a profile (assuming it's a legit one), then modifies them
+        /// so they still look legitimate without being a complete paste of the source profile.
         /// </summary>
         /// <returns></returns>
         public IEnumerable<long> smartCopy()
