@@ -89,9 +89,12 @@ namespace PS3TrophiesIsPerfect.ViewModels
             try { games = await Task.Run(() => Psn.GetPs3Games()); }
             catch (PsnApi.AuthRequiredException)
             {
-                if (showBusy) IsBusy = false;
+                // A silent background refresh must never pop the login dialog — keep showing the cache and
+                // wait for an explicit action (foreground load, or opening a game) to re-link.
+                if (!showBusy) return;
+                IsBusy = false;
                 if (!await EnsureSignedInAsync()) return;
-                if (showBusy) { IsBusy = true; BusyText = "Loading your PS3 games from PlayStation…"; }
+                IsBusy = true; BusyText = "Loading your PS3 games from PlayStation…";
                 try { games = await Task.Run(() => Psn.GetPs3Games()); }
                 catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load games"); return; }
             }

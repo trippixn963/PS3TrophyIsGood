@@ -47,9 +47,10 @@ namespace PS3TrophiesIsPerfect.Services
             var result = RunPfdTool(" -d \"" + saveDir + "\" TROPTRNS.DAT");
             if (result.ExitCode != 0)
             {
+                string detail = string.IsNullOrWhiteSpace(result.Output) ? "(no output)" : result.Output.Trim();
                 throw new Exception(
-                    "An error occurred while decrypting the trophies. Please make sure the "
-                        + "Microsoft Visual C++ Redistributable is installed. You can download it at: "
+                    "Couldn't decrypt the trophy data (pfdtool exited " + result.ExitCode + ").\n\n" + detail
+                        + "\n\nIf pfdtool didn't run at all, install the Microsoft Visual C++ Redistributable: "
                         + "https://www.microsoft.com/download/details.aspx?id=5555");
             }
             if (result.Output != PfdToolBanner)
@@ -79,14 +80,6 @@ namespace PS3TrophiesIsPerfect.Services
 
             RunPfdTool(" -u \"" + saveDir + "\"");
             RunPfdTool(" -e \"" + saveDir + "\" TROPTRNS.DAT");
-        }
-
-        public static long LongRandom(long min, long max, Random rand)
-        {
-            byte[] buf = new byte[8];
-            rand.NextBytes(buf);
-            long longRand = BitConverter.ToInt64(buf, 0);
-            return Math.Abs(longRand % (max - min)) + min;
         }
 
         public static DateTime TimeStampToDateTime(this long timestamp)

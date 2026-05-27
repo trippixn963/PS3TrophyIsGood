@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Media;
 using PS3TrophiesIsPerfect.Services;
 
 namespace PS3TrophiesIsPerfect.Models
 {
-    /// <summary>One row in the trophy grid, projected from the frozen TROPHYParser tables.</summary>
+    /// <summary>One row in the trophy list, projected from the frozen TROPHYParser tables.</summary>
     public sealed class TrophyRow
     {
         /// <summary>Trophy id == index in the parser tables (Platinum = 0).</summary>
@@ -30,19 +31,17 @@ namespace PS3TrophiesIsPerfect.Models
         /// <summary>Real per-trophy artwork (TROPxxx.PNG). Null until a game is loaded.</summary>
         public ImageSource Icon { get; set; }
 
-        public string TimeText => Time.HasValue ? Time.Value.ToString("yyyy/MM/dd  HH:mm:ss") : string.Empty;
-        public string GotText => Got ? "Yes" : "No";
-        public string SyncedText => Synced ? "Yes" : "No";
-
         // ---- Card display helpers ----
         public double RowOpacity => Got ? 1.0 : 0.45;
         public string TimeDisplay => Got ? (Time?.ToString("d MMM yyyy  h:mm tt") ?? "Unlocked") : "Locked";
         public string StatusText => Synced ? "Synced" : (Got ? "Unlocked" : "Locked");
         public string ElapsedDisplay => Got ? (Elapsed ?? "") : "";
 
-        /// <summary>What the grid shows: real artwork if loaded, otherwise the trophy-type badge.</summary>
+        /// <summary>What the list shows: real artwork if loaded, otherwise the trophy-type badge.</summary>
         public ImageSource Display => Icon ?? TypeBadge;
 
+        // The four type badges are shared, frozen, embedded assets — load each once.
+        private static readonly Dictionary<string, ImageSource> _badgeCache = new Dictionary<string, ImageSource>();
         public ImageSource TypeBadge
         {
             get
@@ -56,22 +55,9 @@ namespace PS3TrophiesIsPerfect.Models
                     case "B": name = "bronze"; break;
                     default: return null;
                 }
-                return ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + name + ".png");
-            }
-        }
-
-        public Brush TypeBrush
-        {
-            get
-            {
-                switch (Type)
-                {
-                    case "P": return new SolidColorBrush(Color.FromRgb(0x6F, 0xC8, 0xF0));
-                    case "G": return new SolidColorBrush(Color.FromRgb(0xF0, 0xC4, 0x40));
-                    case "S": return new SolidColorBrush(Color.FromRgb(0xC4, 0xCC, 0xD4));
-                    case "B": return new SolidColorBrush(Color.FromRgb(0xCD, 0x7F, 0x32));
-                    default: return Brushes.Gray;
-                }
+                if (!_badgeCache.TryGetValue(name, out var img))
+                    _badgeCache[name] = img = ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + name + ".png");
+                return img;
             }
         }
     }
