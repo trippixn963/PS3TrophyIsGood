@@ -16,6 +16,10 @@ namespace PS3TrophiesIsPerfect.Services
     {
         public string LastFolder { get; set; } = "";
         public string LastProfile { get; set; } = "";
+
+        /// <summary>Recently opened trophy folders, most-recent first (capped, deduped).</summary>
+        public System.Collections.Generic.List<string> RecentFolders { get; set; } =
+            new System.Collections.Generic.List<string>();
         public double WinWidth { get; set; }
         public double WinHeight { get; set; }
         public double WinLeft { get; set; } = double.NaN;

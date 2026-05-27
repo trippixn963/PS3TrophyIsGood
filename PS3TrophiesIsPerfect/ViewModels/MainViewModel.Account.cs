@@ -18,6 +18,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 Raise(nameof(NoMyUser));
                 Raise(nameof(MyUserDisplay));
                 Raise(nameof(AccountChipText));
+                Raise(nameof(StatusAccount));
             }
         }
         public bool HasMyUser => !string.IsNullOrWhiteSpace(_myPsnUser);

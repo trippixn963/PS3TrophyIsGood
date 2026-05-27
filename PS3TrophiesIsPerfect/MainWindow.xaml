@@ -45,6 +45,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
     <!-- Custom title bar (with a blue light-streak accent line, echoing the banner) -->
     <Border Grid.Row="0" Background="{StaticResource HeaderBg}" BorderThickness="0,0,0,2">
@@ -256,6 +257,7 @@
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <Border
           Grid.Column="0"
@@ -289,6 +291,17 @@
           Height="66"
           Percent="{Binding CompletionPercent}"
         />
+        <Button
+          Grid.Column="3"
+          Style="{StaticResource ToolButton}"
+          Command="{Binding CloseCommand}"
+          VerticalAlignment="Top"
+          Margin="14,-6,-6,0"
+          ToolTip="Close this folder (back to the welcome screen)"
+          Visibility="{Binding HasGame, Converter={StaticResource B2V}}"
+        >
+          <ui:FontIcon Glyph="" FontSize="13" Foreground="{StaticResource TextMuted}" />
+        </Button>
       </Grid>
     </Border>
     <!-- Tabs: trophies / comparison / library -->
@@ -380,5 +393,61 @@
         </StackPanel>
       </Border>
     </Grid>
+    <!-- Status bar -->
+    <Border
+      Grid.Row="4"
+      Background="{StaticResource HeaderBg}"
+      BorderBrush="{StaticResource CardBorder}"
+      BorderThickness="0,1,0,0"
+      Padding="14,5"
+    >
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock
+          Grid.Column="0"
+          Text="{Binding StatusFolder}"
+          Foreground="{StaticResource TextMuted}"
+          FontSize="11"
+          VerticalAlignment="Center"
+          TextTrimming="CharacterEllipsis"
+          Margin="0,0,12,0"
+        />
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <TextBlock
+            Text="{Binding StatusSave}"
+            Foreground="{StaticResource TextMuted}"
+            FontSize="11"
+            VerticalAlignment="Center"
+          />
+          <TextBlock
+            Text="   ·   "
+            Foreground="{StaticResource CardBorder}"
+            FontSize="11"
+            VerticalAlignment="Center"
+          />
+          <TextBlock
+            Text="{Binding StatusAccount}"
+            Foreground="{StaticResource TextMuted}"
+            FontSize="11"
+            VerticalAlignment="Center"
+          />
+          <TextBlock
+            Text="   ·   "
+            Foreground="{StaticResource CardBorder}"
+            FontSize="11"
+            VerticalAlignment="Center"
+          />
+          <TextBlock
+            Text="{Binding ScrapeStatus}"
+            Foreground="{StaticResource TextMuted}"
+            FontSize="11"
+            VerticalAlignment="Center"
+          />
+        </StackPanel>
+      </Grid>
+    </Border>
   </Grid>
 </Window>

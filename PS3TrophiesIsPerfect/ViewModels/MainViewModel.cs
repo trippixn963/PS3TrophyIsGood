@@ -31,6 +31,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         {
             _dirty = value;
             Raise(nameof(WindowTitle));
+            Raise(nameof(StatusSave));
         }
 
         public string WindowTitle =>
@@ -108,6 +109,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 Set(ref _hasGame, value);
                 Raise(nameof(EmptyHintVisible));
                 Raise(nameof(WindowTitle));
+                Raise(nameof(StatusFolder));
+                Raise(nameof(StatusSave));
             }
         }
         public bool EmptyHintVisible => !HasGame;
@@ -154,6 +157,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ICommand OpenCommand { get; }
         public ICommand SaveCommand { get; }
         public ICommand RefreshCommand { get; }
+        public ICommand CloseCommand { get; }
         public ICommand ScrapeCommand { get; }
         public ICommand RelocateCommand { get; }
         public ICommand CheckCommand { get; }
@@ -170,6 +174,10 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 () => _doc.IsOpen && !IsBusy
             );
             RefreshCommand = new RelayCommand(Refresh, () => _doc.IsOpen && !IsBusy);
+            CloseCommand = new RelayCommand(
+                async () => await CloseDocumentAsync(),
+                () => _doc.IsOpen && !IsBusy
+            );
             ScrapeCommand = new RelayCommand(
                 async () => await ScrapeAsync(),
                 () => _doc.IsOpen && !IsBusy
@@ -194,10 +202,18 @@ namespace PS3TrophiesIsPerfect.ViewModels
         /// <summary>Called once the window is loaded: start FlareSolverr and reopen the last folder.</summary>
         public async Task StartupAsync()
         {
-            _ = Task.Run(() => FlareSolverr.EnsureStarted());
+            _ = Task.Run(() =>
+            {
+                FlareSolverr.EnsureStarted();
+                Utility.servingReady.WaitOne(TimeSpan.FromSeconds(60));
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                    Raise(nameof(ScrapeStatus))
+                );
+            });
             MyPsnUser = Settings.MyPsnUser ?? "";
             MyAvatarUrl = Settings.MyAvatarUrl ?? "";
             LoadProfiles();
+            RebuildRecents();
             if (!string.IsNullOrEmpty(Settings.LastFolder) && Directory.Exists(Settings.LastFolder))
                 await OpenPath(Settings.LastFolder);
             if (Settings.Donor != null && Settings.Donor.Count > 0)
@@ -247,6 +263,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 SetDirty(false);
                 Settings.LastFolder = folder;
                 Settings.Save();
+                RememberFolder(folder);
             }
             catch (Exception ex)
             {
@@ -283,6 +300,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 string profile = SelectedProfile ?? TrophyDocument.DefaultProfile;
                 await Task.Run(() => _doc.Save(profile));
+                _lastSaved = DateTime.Now;
                 SetDirty(false);
                 IsBusy = false;
                 if (notify)
@@ -293,6 +311,38 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 IsBusy = false;
                 await Modern.Info(ex.Message, "Save failed");
             }
+        }
+
+        /// <summary>Closes the open trophy folder and returns to the welcome screen (prompts if unsaved).</summary>
+        private async Task CloseDocumentAsync()
+        {
+            if (!_doc.IsOpen)
+                return;
+            if (_dirty)
+            {
+                var choice = await Modern.SaveDiscardCancel(
+                    "You have unsaved changes. Save before closing this folder?",
+                    "Close folder"
+                );
+                if (choice == Modern.SaveChoice.Cancel)
+                    return;
+                if (choice == Modern.SaveChoice.Save)
+                    await SaveAsync(notify: false);
+            }
+
+            _doc.Close();
+            _allRows.Clear();
+            Trophies.Clear();
+            GameTitle = "No game loaded";
+            GameSubtitle = "Open a trophy folder, or drag one here";
+            CompletionPercent = 0;
+            GameIcon = null;
+            HasGame = false;
+            SetDirty(false);
+            SelectedTab = 0;
+            Settings.LastFolder = "";
+            Settings.Save();
+            ShowToast("Folder closed");
         }
 
         private async Task ClearAllAsync()

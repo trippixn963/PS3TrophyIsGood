@@ -57,7 +57,7 @@
                   Padding="10"
                   Cursor="Hand"
                   Opacity="{Binding RowOpacity}"
-                  ToolTip="Double-click to set / change time · right-click for more"
+                  ToolTip="Double-click to set / change time Â· right-click for more"
                 >
                   <Border.Style>
                     <Style TargetType="Border" BasedOn="{StaticResource CardHover}">
@@ -70,7 +70,7 @@
                   </Border.Style>
                   <Border.ContextMenu>
                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                      <MenuItem Header="Set / change time…" Click="Ctx_Edit" />
+                      <MenuItem Header="Set / change timeâ€¦" Click="Ctx_Edit" />
                       <MenuItem Header="Lock (remove unlock)" Click="Ctx_Lock" />
                     </ContextMenu>
                   </Border.ContextMenu>
@@ -144,15 +144,99 @@
       BorderThickness="1"
       Visibility="{Binding EmptyHintVisible, Converter={StaticResource B2V}}"
     >
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-        <ui:FontIcon Glyph="" FontSize="40" Foreground="{StaticResource TextMuted}" />
-        <TextBlock
-          Text="Open a trophy folder, or drag one here"
-          Margin="0,14,0,0"
-          Foreground="{StaticResource TextMuted}"
-          FontSize="14"
-        />
-      </StackPanel>
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel HorizontalAlignment="Center" MaxWidth="460" Margin="0,40,0,0">
+          <Image
+            Source="Assets/logo.png"
+            Width="72"
+            Height="72"
+            HorizontalAlignment="Center"
+            RenderOptions.BitmapScalingMode="HighQuality"
+          />
+          <TextBlock
+            Text="PS3TrophiesIsPerfect"
+            FontSize="20"
+            FontWeight="SemiBold"
+            HorizontalAlignment="Center"
+            Margin="0,12,0,0"
+            Foreground="{StaticResource Text}"
+          />
+          <TextBlock
+            Text="Open a trophy folder to begin, or drag one onto the window."
+            HorizontalAlignment="Center"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Margin="0,6,0,0"
+            FontSize="13"
+            Foreground="{StaticResource TextMuted}"
+          />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,18,0,0">
+            <Button
+              Command="{Binding OpenCommand}"
+              Style="{StaticResource AccentButtonStyle}"
+              Padding="16,7"
+              Margin="0,0,8,0"
+            >
+              <StackPanel Orientation="Horizontal">
+                <ui:FontIcon Glyph="" FontSize="15" Margin="0,0,8,0" />
+                <TextBlock Text="Open folder" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding SetMyUserCommand}" Padding="16,7">
+              <StackPanel Orientation="Horizontal">
+                <ui:FontIcon Glyph="" FontSize="15" Margin="0,0,8,0" />
+                <TextBlock Text="Link PSN account" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <StackPanel
+            Margin="0,28,0,0"
+            Visibility="{Binding HasRecents, Converter={StaticResource B2V}}"
+          >
+            <TextBlock
+              Text="Recent"
+              FontSize="12"
+              Foreground="{StaticResource TextMuted}"
+              Margin="2,0,0,8"
+            />
+            <ItemsControl ItemsSource="{Binding RecentFolders}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button
+                    Command="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                    CommandParameter="{Binding Path}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Margin="0,0,0,6"
+                    Padding="10,8"
+                    ToolTip="{Binding Path}"
+                  >
+                    <StackPanel Orientation="Horizontal">
+                      <ui:FontIcon
+                        Glyph=""
+                        FontSize="16"
+                        Foreground="{StaticResource Accent}"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center"
+                      />
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock
+                          Text="{Binding Parent}"
+                          Foreground="{StaticResource TextMuted}"
+                          FontSize="11"
+                          TextTrimming="CharacterEllipsis"
+                          MaxWidth="360"
+                        />
+                      </StackPanel>
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
     </Border>
   </Grid>
 </UserControl>
