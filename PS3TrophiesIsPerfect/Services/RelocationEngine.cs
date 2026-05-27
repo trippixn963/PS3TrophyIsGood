@@ -14,11 +14,13 @@ namespace PS3TrophiesIsPerfect.Services
     }
 
     /// <summary>
-    /// Rebuilds an imported unlock sequence as realistic nightly play sessions from a start date through
-    /// today, finishing with the platinum earned today. HARD INVARIANTS (do not change): bursts (≤60s) and
-    /// the platinum pop-gap keep the donor's EXACT gaps; every other gap is the donor's plus a few minutes
-    /// (always SLOWER, never faster); nothing is ever dated in the future. Mutates <paramref name="timesArr"/>.
-    /// Moved verbatim from TrophyDocument; the only external input is <paramref name="hasPlatinum"/>.
+    /// Rebuilds an imported unlock sequence as realistic nightly play sessions that SPAN the window the user
+    /// picked: the first trophy lands on <paramref name="startDate"/> and the platinum pops ~now, with the
+    /// sessions stretched proportionally across that span (a short window → a few long sessions; a long
+    /// window → sessions spread across the days). HARD INVARIANTS (do not change): bursts (≤60s) keep the
+    /// donor's EXACT gaps; the platinum keeps the donor's EXACT pop-gap; every other in-session gap is the
+    /// donor's plus a few minutes (always SLOWER, never faster); nothing is ever dated in the future; the
+    /// first trophy is never before the chosen start. Mutates <paramref name="timesArr"/>.
     /// </summary>
     public static class RelocationEngine
     {
@@ -36,85 +38,124 @@ namespace PS3TrophiesIsPerfect.Services
             const int LullMaxMinutes = 50;
 
             var times = timesArr.ToList();
-
-            if (startDate > DateTime.Today)
-                startDate = DateTime.Today;
-
             var original = new List<long>(times);
+
+            if (startDate.Date > DateTime.Today) startDate = DateTime.Today;
+            startDate = startDate.Date;
+
+            // Donor trophies (incl. the platinum at index 0), in unlock order.
             var seq = new List<KeyValuePair<int, long>>();
             for (int i = 0; i < original.Count; i++)
                 if (original[i] != 0)
                     seq.Add(new KeyValuePair<int, long>(i, original[i]));
             seq.Sort((a, b) => a.Value.CompareTo(b.Value));
-            if (seq.Count == 0)
+            int n = seq.Count;
+            if (n == 0)
                 return new RelocationResult(0, false, DateTime.MinValue, DateTime.MinValue);
 
             var rand = new Random();
             DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             long ToUnix(DateTime dt) => (long)(dt - epoch).TotalSeconds;
 
-            var sessionStart = new List<int> { 0 };
-            var relOffset = new long[seq.Count];
-            long elapsed = 0;
-            long nightLenSec = (long)rand.Next(MinSessionMinutes, MaxSessionMinutes + 1) * 60;
-            for (int k = 1; k < seq.Count; k++)
+            // ---- Phase 1: per-step "play time" between consecutive trophies (a continuous timeline). -------
+            // Bursts keep the donor's exact gap; everything else is the donor's gap plus a few minutes.
+            var add = new long[n];
+            var isBurst = new bool[n];
+            for (int k = 1; k < n; k++)
             {
                 long gap = seq[k].Value - seq[k - 1].Value;
-                long add;
                 if (gap <= BurstGapSeconds)
                 {
-                    add = gap;
+                    isBurst[k] = true;
+                    add[k] = gap;
                 }
                 else
                 {
                     long extraMin = rand.Next(MinExtraMinutes, MaxExtraMinutes + 1);
                     if (rand.Next(100) < LullChancePercent)
                         extraMin += rand.Next(LullMinMinutes, LullMaxMinutes + 1);
-                    add = gap + extraMin * 60 + rand.Next(0, 60);
+                    add[k] = gap + extraMin * 60 + rand.Next(0, 60);
+                }
+            }
 
-                    if (elapsed + add > nightLenSec)
+            // ---- Phase 2: how many sessions would the donor's pacing naturally produce? --------------------
+            int naturalSessions = 1;
+            {
+                long elapsed = 0;
+                long nightLenSec = (long)rand.Next(MinSessionMinutes, MaxSessionMinutes + 1) * 60;
+                for (int k = 1; k < n; k++)
+                {
+                    if (!isBurst[k] && elapsed + add[k] > nightLenSec)
                     {
-                        sessionStart.Add(k);
-                        relOffset[k] = 0;
+                        naturalSessions++;
                         elapsed = 0;
                         nightLenSec = (long)rand.Next(MinSessionMinutes, MaxSessionMinutes + 1) * 60;
-                        continue;
                     }
+                    else elapsed += add[k];
                 }
-                relOffset[k] = relOffset[k - 1] + add;
-                elapsed += add;
             }
+
+            // ---- Phase 3: fit the sessions to the chosen window. -------------------------------------------
+            int windowDays = Math.Max(0, (int)(DateTime.Today - startDate).TotalDays);
+            int availableNights = windowDays + 1;
+            int minSessions = windowDays >= 1 ? 2 : 1; // need one on the start day AND one today when the window spans days
+            int targetSessions = Math.Max(minSessions, Math.Min(naturalSessions, availableNights));
+            targetSessions = Math.Min(targetSessions, n); // can't have more sessions than trophies
+
+            // Break the sequence into exactly `targetSessions` sessions at the largest non-burst gaps (never
+            // splitting a burst, and never splitting immediately before the platinum so its pop-gap is kept).
+            var breaks = new List<int>();
+            if (targetSessions > 1)
+            {
+                var candidates = new List<KeyValuePair<int, long>>();
+                for (int k = 1; k < n; k++)
+                    if (!isBurst[k] && seq[k].Key != 0)
+                        candidates.Add(new KeyValuePair<int, long>(k, add[k]));
+                candidates.Sort((a, b) => b.Value.CompareTo(a.Value)); // largest gaps first
+                foreach (var c in candidates.Take(targetSessions - 1))
+                    breaks.Add(c.Key);
+                breaks.Sort();
+            }
+
+            var sessionStart = new List<int> { 0 };
+            sessionStart.AddRange(breaks);
             int sessions = sessionStart.Count;
 
-            var nightDay = new DateTime[sessions];
-            int lead = sessions - 1;
-            if (lead >= 1)
+            // Relative offset of each trophy from the start of ITS session.
+            var relOffset = new long[n];
+            for (int s = 0; s < sessions; s++)
             {
-                nightDay[0] = startDate;
-                int availDays = Math.Max(0, (int)(DateTime.Today.AddDays(-2) - startDate).TotalDays);
-                if (lead - 1 <= availDays)
-                {
-                    var offsets = new List<int>();
-                    for (int d = 1; d <= availDays; d++)
-                        offsets.Add(d);
-                    for (int i = offsets.Count - 1; i > 0; i--)
-                    {
-                        int j = rand.Next(i + 1);
-                        int tmp = offsets[i]; offsets[i] = offsets[j]; offsets[j] = tmp;
-                    }
-                    var chosen = offsets.Take(lead - 1).ToList();
-                    chosen.Sort();
-                    for (int s = 1; s < lead; s++)
-                        nightDay[s] = startDate.AddDays(chosen[s - 1]);
-                }
-                else
-                {
-                    for (int s = 0; s < lead; s++)
-                        nightDay[s] = DateTime.Today.AddDays(-2 - (lead - 1 - s));
-                }
+                int from = sessionStart[s];
+                int to = (s + 1 < sessions ? sessionStart[s + 1] : n) - 1;
+                relOffset[from] = 0;
+                for (int k = from + 1; k <= to; k++)
+                    relOffset[k] = relOffset[k - 1] + add[k];
             }
 
-            for (int s = 0; s < lead; s++)
+            // ---- Phase 4: assign each session a day, stretched across [startDate .. today]. ----------------
+            var nightDay = new DateTime[sessions];
+            if (sessions == 1)
+            {
+                nightDay[0] = startDate; // window is a single day → anchored to now below
+            }
+            else
+            {
+                for (int s = 0; s < sessions; s++)
+                {
+                    int dayOffset = (int)Math.Round((double)s / (sessions - 1) * windowDays);
+                    nightDay[s] = startDate.AddDays(dayOffset);
+                }
+                nightDay[0] = startDate;                  // first trophy is exactly on the chosen start
+                nightDay[sessions - 1] = DateTime.Today;  // last session is today (platinum pops now)
+                for (int s = 1; s < sessions; s++)         // keep days strictly increasing
+                    if (nightDay[s] <= nightDay[s - 1])
+                        nightDay[s] = nightDay[s - 1].AddDays(1);
+            }
+
+            // ---- Phase 5: lay the trophies onto the timeline. ----------------------------------------------
+            // Every session but the last starts in the evening of its night; the last is anchored so the
+            // platinum lands ~now.
+            for (int s = 0; s < sessions - 1; s++)
             {
                 int from = sessionStart[s];
                 int to = sessionStart[s + 1] - 1;
@@ -125,10 +166,9 @@ namespace PS3TrophiesIsPerfect.Services
                 for (int k = from; k <= to; k++)
                     times[seq[k].Key] = ToUnix(ns.AddSeconds(relOffset[k]));
             }
-
             {
-                int from = sessionStart[lead];
-                int last = seq.Count - 1;
+                int from = sessionStart[sessions - 1];
+                int last = n - 1;
                 long finalDuration = relOffset[last];
                 DateTime platTarget = DateTime.Now.AddSeconds(-rand.Next(30, 301));
                 DateTime finalStart = platTarget.AddSeconds(-finalDuration);
@@ -136,6 +176,7 @@ namespace PS3TrophiesIsPerfect.Services
                     times[seq[k].Key] = ToUnix(finalStart.AddSeconds(relOffset[k]));
             }
 
+            // ---- Phase 6: pin the platinum to the donor's EXACT pop-gap after its predecessor. -------------
             bool platEarned = hasPlatinum && original.Count > 0 && original[0] != 0;
             if (platEarned)
             {
@@ -152,14 +193,15 @@ namespace PS3TrophiesIsPerfect.Services
                     times[0] = times[prevIdx] + (platOrig - prevOrig);
             }
 
+            // ---- Phase 7: never the future. Shift the whole run back by just the overflow (keeps it today). -
             long nowUnix = ToUnix(DateTime.Now);
             long maxT = times.Where(t => t != 0).Max();
-            while (maxT > nowUnix)
+            if (maxT > nowUnix)
             {
+                long shift = maxT - nowUnix;
                 for (int i = 0; i < times.Count; i++)
                     if (times[i] != 0)
-                        times[i] -= 24L * 3600L;
-                maxT -= 24L * 3600L;
+                        times[i] -= shift;
             }
 
             for (int i = 0; i < times.Count; i++)
