@@ -34,6 +34,12 @@ namespace PS3TrophiesIsPerfect.Models
         public string GotText => Got ? "Yes" : "No";
         public string SyncedText => Synced ? "Yes" : "No";
 
+        // ---- Card display helpers ----
+        public double RowOpacity => Got ? 1.0 : 0.45;
+        public string TimeDisplay => Got ? (Time?.ToString("d MMM yyyy  h:mm tt") ?? "Unlocked") : "Locked";
+        public string StatusText => Synced ? "Synced" : (Got ? "Unlocked" : "Locked");
+        public string ElapsedDisplay => Got ? (Elapsed ?? "") : "";
+
         /// <summary>What the grid shows: real artwork if loaded, otherwise the trophy-type badge.</summary>
         public ImageSource Display => Icon ?? TypeBadge;
 

@@ -18,14 +18,38 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private string _filter = "";
         public string Filter { get => _filter; set { Set(ref _filter, value); ApplyFilter(); } }
 
+        public string[] TrophySorts { get; } = { "Unlock order", "Name", "Type", "Most recent" };
+        private string _trophySort = "Unlock order";
+        public string TrophySort { get => _trophySort; set { Set(ref _trophySort, value); ApplyFilter(); } }
+
+        private string _trophyCountText = "";
+        public string TrophyCountText { get => _trophyCountText; private set => Set(ref _trophyCountText, value); }
+
+        private static int TypeRank(string t)
+        {
+            switch (t) { case "P": return 0; case "G": return 1; case "S": return 2; case "B": return 3; default: return 4; }
+        }
+
         private void ApplyFilter()
         {
             Trophies.Clear();
             IEnumerable<TrophyRow> rows = _allRows;
             if (!string.IsNullOrWhiteSpace(_filter))
                 rows = rows.Where(r => (r.Name ?? "").IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0);
-            foreach (var r in rows)
-                Trophies.Add(r);
+
+            switch (_trophySort)
+            {
+                case "Name": rows = rows.OrderBy(r => r.Name); break;
+                case "Type": rows = rows.OrderBy(r => TypeRank(r.Type)).ThenBy(r => r.Order); break;
+                case "Most recent": rows = rows.OrderByDescending(r => r.Time ?? DateTime.MinValue).ThenBy(r => r.Order); break;
+                default: rows = rows.OrderBy(r => r.Order); break;
+            }
+
+            int shown = 0;
+            foreach (var r in rows) { Trophies.Add(r); shown++; }
+            TrophyCountText = _allRows.Count == shown
+                ? shown + " trophies"
+                : shown + " of " + _allRows.Count + " trophies";
         }
 
         /// <summary>Double-click / context menu: set / change the unlock time.</summary>
