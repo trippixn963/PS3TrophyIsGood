@@ -27,6 +27,14 @@ namespace PS3TrophiesIsPerfect.Services
         public string AvatarUrl { get; set; }
     }
 
+    /// <summary>The PS3 games (without banners yet) + the Cloudflare cookie/UA needed to fetch banners.</summary>
+    public sealed class Ps3Library
+    {
+        public List<GameProgress> Games { get; set; } = new List<GameProgress>();
+        public string Cookie { get; set; }
+        public string Ua { get; set; }
+    }
+
     /// <summary>
     /// Scrapes a PSNProfiles user game-trophy page through the local FlareSolverr proxy (PSNProfiles
     /// sits behind Cloudflare). Returns the earned trophies as name-keyed entries carrying the real
@@ -44,7 +52,7 @@ namespace PS3TrophiesIsPerfect.Services
         /// Scrapes the linked account's profile (https://psnprofiles.com/{user}) and returns the PS3
         /// games with earned/total trophies and completion %, parsed from the #gamesTable.
         /// </summary>
-        public static List<GameProgress> FetchPs3Games(string user)
+        public static Ps3Library FetchPs3Games(string user)
         {
             var fetched = Fetch("https://psnprofiles.com/" + user.Trim());
             string html = fetched.Html;
@@ -94,14 +102,14 @@ namespace PS3TrophiesIsPerfect.Services
                 {
                     Name = name,
                     Url = "https://psnprofiles.com" + titleM.Groups[1].Value,
-                    IconUrl = iconUrl,
-                    Icon = CachedImage(iconUrl, gameId, fetched.Cookie, fetched.Ua),
+                    GameId = gameId,
+                    IconUrl = iconUrl,   // banner downloaded lazily after the list shows (see LoadBanner)
                     Earned = earned,
                     Total = total,
                     Percent = pct,
                 });
             }
-            return games;
+            return new Ps3Library { Games = games, Cookie = fetched.Cookie, Ua = fetched.Ua };
         }
 
         private static string ExtractAvatar(string html)
@@ -195,9 +203,9 @@ namespace PS3TrophiesIsPerfect.Services
             }
         }
 
-        /// <summary>Downloads a Cloudflare-protected image (using the fetch's cookie + UA) and caches it
-        /// to %AppData%, returning a frozen ImageSource. Null on any failure.</summary>
-        private static System.Windows.Media.ImageSource CachedImage(string url, string cacheKey, string cookie, string ua)
+        /// <summary>Downloads a Cloudflare-protected game banner (using the fetch's cookie + UA) and caches
+        /// it to %AppData%, returning a frozen ImageSource. Cached files skip the network. Null on failure.</summary>
+        public static System.Windows.Media.ImageSource LoadBanner(string url, string cacheKey, string cookie, string ua)
         {
             if (string.IsNullOrEmpty(url)) return null;
             try

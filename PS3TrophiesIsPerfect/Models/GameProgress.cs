@@ -1,16 +1,15 @@
+using System.ComponentModel;
 using System.Windows.Media;
 
 namespace PS3TrophiesIsPerfect.Models
 {
     /// <summary>One PS3 game from the linked PSNProfiles account: banner + earned/total trophies + completion.</summary>
-    public sealed class GameProgress
+    public sealed class GameProgress : INotifyPropertyChanged
     {
         public string Name { get; set; }
         public string Url { get; set; }
+        public string GameId { get; set; }
         public string IconUrl { get; set; }
-
-        /// <summary>The game banner (downloaded via the Cloudflare cookie + cached). Null if unavailable.</summary>
-        public ImageSource Icon { get; set; }
 
         public int Earned { get; set; }
         public int Total { get; set; }
@@ -18,5 +17,15 @@ namespace PS3TrophiesIsPerfect.Models
 
         public string CountText => Earned + " / " + Total + " trophies";
         public string PercentText => Percent + "%";
+
+        /// <summary>The game banner — set after the list shows (downloaded in the background + cached).</summary>
+        private ImageSource _icon;
+        public ImageSource Icon
+        {
+            get => _icon;
+            set { _icon = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon))); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }
