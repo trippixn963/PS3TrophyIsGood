@@ -137,6 +137,53 @@ namespace PS3TrophiesIsPerfect.Services
             return games;
         }
 
+        /// <summary>The earliest date the account has any trophy activity, across every platform — a safe
+        /// floor for "your first trophy ever" (a title's last-updated date is always on/after its first
+        /// trophy, so the minimum of those is never before the account's true first). Null if none/unknown.</summary>
+        public DateTime? GetEarliestTrophyDate()
+        {
+            string token = AccessToken();
+            DateTime? earliest = null;
+            int offset = 0,
+                totalItems = int.MaxValue;
+            while (offset < totalItems)
+            {
+                string json = ApiGet(
+                    $"{ApiBase}/users/me/trophyTitles?limit=800&offset={offset}",
+                    token
+                );
+                using (var doc = JsonDocument.Parse(json))
+                {
+                    var root = doc.RootElement;
+                    if (!root.TryGetProperty("trophyTitles", out var titles))
+                        break;
+                    totalItems = Int(root, "totalItemCount");
+                    int pageCount = 0;
+                    foreach (var t in titles.EnumerateArray())
+                    {
+                        pageCount++;
+                        if (
+                            t.TryGetProperty("lastUpdatedDateTime", out var lu)
+                            && lu.ValueKind == JsonValueKind.String
+                            && DateTime.TryParse(
+                                lu.GetString(),
+                                null,
+                                System.Globalization.DateTimeStyles.AdjustToUniversal
+                                    | System.Globalization.DateTimeStyles.AssumeUniversal,
+                                out var d
+                            )
+                            && (earliest == null || d < earliest)
+                        )
+                            earliest = d;
+                    }
+                    if (pageCount == 0)
+                        break;
+                    offset += pageCount;
+                }
+            }
+            return earliest;
+        }
+
         /// <summary>The account's overall trophy level + total earned trophies by type, across all platforms.</summary>
         public PsnSummary GetTrophySummary()
         {

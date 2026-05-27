@@ -98,7 +98,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 );
                 if (start != null)
                 {
-                    r = _doc.RelocateToNightSessions(times, start.Value.Date);
+                    await EnsureAccountFloorAsync();
+                    r = _doc.RelocateToNightSessions(times, ClampStart(start.Value));
                     relocated = true;
                 }
             }
@@ -146,7 +147,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
             if (start == null)
                 return;
 
-            var r = _doc.RelocateToNightSessions(times, start.Value.Date);
+            await EnsureAccountFloorAsync();
+            var r = _doc.RelocateToNightSessions(times, ClampStart(start.Value));
             try
             {
                 _doc.ApplyTimes(times);
@@ -160,6 +162,15 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 await Modern.Info(ex.Message, "Apply failed");
             }
+        }
+
+        /// <summary>Never start a relocated run before the account's own earliest trophy activity.</summary>
+        private DateTime ClampStart(DateTime picked)
+        {
+            var s = picked.Date;
+            if (AccountFloor.HasValue && s < AccountFloor.Value)
+                s = AccountFloor.Value;
+            return s;
         }
 
         private static string UserFromUrl(string url)

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using PS3TrophiesIsPerfect.Dialogs;
@@ -97,6 +98,26 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 )
             );
 
+        /// <summary>Earliest date the account has any trophy activity — a safe floor so a relocated run can
+        /// never start before your account's own trophy history. Fetched once per session.</summary>
+        private DateTime? _accountFloor;
+
+        public async Task EnsureAccountFloorAsync()
+        {
+            if (_accountFloor.HasValue || !Psn.HasCredentials)
+                return;
+            try
+            {
+                _accountFloor = await Task.Run(() => Psn.GetEarliestTrophyDate());
+            }
+            catch
+            { /* leave null — the donor floor still guards the release date */
+            }
+        }
+
+        /// <summary>The account floor as a date, or null if not (yet) known.</summary>
+        public DateTime? AccountFloor => _accountFloor?.ToLocalTime().Date;
+
         /// <summary>Loads the account's overall trophy level + totals (passive — no prompt if not linked).</summary>
         public async Task LoadPsnSummaryAsync()
         {
@@ -115,6 +136,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             catch
             { /* passive display — leave the stats hidden if it fails */
             }
+            await EnsureAccountFloorAsync();
         }
 
         private async Task SetMyUserAsync()
