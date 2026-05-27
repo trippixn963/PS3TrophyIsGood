@@ -109,7 +109,9 @@ namespace PS3TrophiesIsPerfect.ViewModels
             var cur = MyGames.Where(g => g.GameId != null).ToDictionary(g => g.GameId);
             foreach (var g in fresh)
                 if (g.GameId == null || !cur.TryGetValue(g.GameId, out var c)
-                    || c.Earned != g.Earned || c.Total != g.Total || c.Percent != g.Percent)
+                    || c.Earned != g.Earned || c.Total != g.Total || c.Percent != g.Percent
+                    || c.Platinum != g.Platinum || c.Gold != g.Gold || c.Silver != g.Silver
+                    || c.Bronze != g.Bronze || c.HasDlc != g.HasDlc)
                     return false;
             return true;
         }

@@ -71,6 +71,7 @@ namespace PS3TrophiesIsPerfect.Services
                         if (platform == null || platform.IndexOf("PS3", StringComparison.OrdinalIgnoreCase) < 0)
                             continue;
 
+                        var defined = t.TryGetProperty("definedTrophies", out var d) ? d : default;
                         games.Add(new GameProgress
                         {
                             Name = Str(t, "trophyTitleName"),
@@ -79,6 +80,11 @@ namespace PS3TrophiesIsPerfect.Services
                             Earned = SumTrophies(t, "earnedTrophies"),
                             Total = SumTrophies(t, "definedTrophies"),
                             Percent = Int(t, "progress"),
+                            Platinum = Int(defined, "platinum"),
+                            Gold = Int(defined, "gold"),
+                            Silver = Int(defined, "silver"),
+                            Bronze = Int(defined, "bronze"),
+                            HasDlc = t.TryGetProperty("hasTrophyGroups", out var h) && h.ValueKind == JsonValueKind.True,
                         });
                     }
                     if (pageCount == 0) break; // no more pages
@@ -245,7 +251,8 @@ namespace PS3TrophiesIsPerfect.Services
             e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
         private static int Int(JsonElement e, string name) =>
-            e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
+            e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v)
+                && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
 
         private static int SumTrophies(JsonElement title, string name)
         {

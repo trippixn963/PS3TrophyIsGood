@@ -35,8 +35,30 @@
                                     <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
                                                    TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding CountText}" Foreground="{StaticResource TextMuted}"
-                                                   FontSize="12" Margin="0,3,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding CountText}" Foreground="{StaticResource TextMuted}"
+                                                       FontSize="12" VerticalAlignment="Center" />
+                                            <Border Visibility="{Binding HasDlc, Converter={StaticResource B2V}}"
+                                                    Background="#2A2A2A" CornerRadius="4" Padding="6,1"
+                                                    Margin="8,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="DLC" FontSize="10" Foreground="{StaticResource TextMuted}" />
+                                            </Border>
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding TypeCounts}" Margin="0,6,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                                        <Image Source="{Binding Badge}" Width="16" Height="16"
+                                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                                        <TextBlock Text="{Binding Count}" Margin="5,0,0,0" FontSize="12"
+                                                                   VerticalAlignment="Center" Foreground="{StaticResource Text}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Width="200" VerticalAlignment="Center" Margin="8,0,4,0">
@@ -85,8 +107,30 @@
                         <StackPanel Grid.Column="2" Margin="14,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding SelectedGame.Name}" FontWeight="SemiBold" FontSize="17"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding SelectedGame.CountText}" Foreground="{StaticResource TextMuted}"
-                                       FontSize="12" Margin="0,3,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding SelectedGame.CountText}" Foreground="{StaticResource TextMuted}"
+                                           FontSize="12" VerticalAlignment="Center" />
+                                <Border Visibility="{Binding SelectedGame.HasDlc, Converter={StaticResource B2V}}"
+                                        Background="#2A2A2A" CornerRadius="4" Padding="6,1"
+                                        Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="DLC" FontSize="10" Foreground="{StaticResource TextMuted}" />
+                                </Border>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding SelectedGame.TypeCounts}" Margin="0,6,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                            <Image Source="{Binding Badge}" Width="16" Height="16"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <TextBlock Text="{Binding Count}" Margin="5,0,0,0" FontSize="12"
+                                                       VerticalAlignment="Center" Foreground="{StaticResource Text}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
 
                         <StackPanel Grid.Column="3" Width="180" VerticalAlignment="Center">
