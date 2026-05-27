@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PS3TrophiesIsPerfect", "PS3TrophiesIsPerfect\PS3TrophiesIsPerfect.csproj", "{19372273-C0B3-4F5F-BAFA-11110D60F9D6}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TROPHYParser", "TROPHYParser", "{8ABA77DA-AE62-5ED3-78AA-20AD81344C4F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TROPHYParser", "TROPHYParser\TROPHYParser\TROPHYParser.csproj", "{81E49C92-D07A-4AD0-8EE0-5C520D4E1C04}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigEndianTool", "BigEndianTool\BigEndianTool\BigEndianTool.csproj", "{A57CEE20-8097-467B-9F57-099BB34FBF2B}"
@@ -60,9 +58,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{81E49C92-D07A-4AD0-8EE0-5C520D4E1C04} = {8ABA77DA-AE62-5ED3-78AA-20AD81344C4F}
-		{A57CEE20-8097-467B-9F57-099BB34FBF2B} = {8ABA77DA-AE62-5ED3-78AA-20AD81344C4F}
 	EndGlobalSection
 EndGlobal

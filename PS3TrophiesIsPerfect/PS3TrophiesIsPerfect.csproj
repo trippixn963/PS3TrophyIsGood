@@ -45,12 +45,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- FROZEN CORE: reference the prebuilt save-data DLLs directly so they are never recompiled. -->
+    <!-- FROZEN CORE: reference the prebuilt save-data binaries (vendored in engine/) so they are never
+         recompiled — and so a fresh clone builds without the net35 TROPHYParser toolchain. -->
     <Reference Include="TROPHYParser">
-      <HintPath>..\TROPHYParser\TROPHYParser\bin\Debug\TROPHYParser.exe</HintPath>
+      <HintPath>..\engine\TROPHYParser.exe</HintPath>
     </Reference>
     <Reference Include="BigEndianTool">
-      <HintPath>..\BigEndianTool\BigEndianTool\bin\Debug\BigEndianTool.dll</HintPath>
+      <HintPath>..\engine\BigEndianTool.dll</HintPath>
     </Reference>
   </ItemGroup>
 
