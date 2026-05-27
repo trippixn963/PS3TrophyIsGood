@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="PS3TrophiesIsPerfect/Assets/banner.png" alt="PS3TrophiesIsPerfect — PS3 save & trophies manipulation app" width="100%" />
-
 # PS3TrophiesIsPerfect
+
+<img src="PS3TrophiesIsPerfect/Assets/banner.png" alt="PS3TrophiesIsPerfect — PS3 save & trophies manipulation app" width="100%" />
 
 **A modern PlayStation 3 trophy &amp; save editor for Windows — built from the ground up.**
 Clone a real player's run, pace it like a human actually played it, and verify it side-by-side.
