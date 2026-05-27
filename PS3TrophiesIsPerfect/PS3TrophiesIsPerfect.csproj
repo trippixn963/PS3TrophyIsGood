@@ -13,6 +13,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <!-- English-only: skip the dozens of localized satellite resource folders (ModernWpfUI etc.). -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- App icon for the .exe (Explorer / taskbar / shortcuts). -->
+    <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,6 +38,9 @@
     <!-- Trophy-type icons scraped from PSNProfiles; embedded so they load via pack URIs. -->
     <None Remove="Assets\TrophyTypes\*.png" />
     <Resource Include="Assets\TrophyTypes\*.png" />
+    <!-- App logo, embedded so it loads via a pack URI (window icon + title bar). -->
+    <None Remove="Assets\logo.png" />
+    <Resource Include="Assets\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
