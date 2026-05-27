@@ -26,11 +26,20 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
         private bool _dirty;
         public bool HasUnsavedChanges => _dirty;
-        private void SetDirty(bool value) { _dirty = value; Raise(nameof(WindowTitle)); }
+
+        private void SetDirty(bool value)
+        {
+            _dirty = value;
+            Raise(nameof(WindowTitle));
+        }
 
         public string WindowTitle =>
-            (_dirty ? "• " : "") + (HasGame && !string.IsNullOrEmpty(GameTitle)
-                ? GameTitle + " — PS3TrophiesIsPerfect" : "PS3TrophiesIsPerfect");
+            (_dirty ? "• " : "")
+            + (
+                HasGame && !string.IsNullOrEmpty(GameTitle)
+                    ? GameTitle + " — PS3TrophiesIsPerfect"
+                    : "PS3TrophiesIsPerfect"
+            );
 
         public ObservableCollection<string> Profiles { get; } = new ObservableCollection<string>();
 
@@ -38,49 +47,109 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public string SelectedProfile
         {
             get => _selectedProfile;
-            set { Set(ref _selectedProfile, value); Settings.LastProfile = value ?? ""; Settings.Save(); }
+            set
+            {
+                Set(ref _selectedProfile, value);
+                Settings.LastProfile = value ?? "";
+                Settings.Save();
+            }
         }
 
         private int _selectedTab;
-        public int SelectedTab { get => _selectedTab; set => Set(ref _selectedTab, value); }
+        public int SelectedTab
+        {
+            get => _selectedTab;
+            set => Set(ref _selectedTab, value);
+        }
 
         private string _gameTitle = "No game loaded";
-        public string GameTitle { get => _gameTitle; set { Set(ref _gameTitle, value); Raise(nameof(WindowTitle)); } }
+        public string GameTitle
+        {
+            get => _gameTitle;
+            set
+            {
+                Set(ref _gameTitle, value);
+                Raise(nameof(WindowTitle));
+            }
+        }
 
         private string _gameSubtitle = "Open a trophy folder, or drag one here";
-        public string GameSubtitle { get => _gameSubtitle; set => Set(ref _gameSubtitle, value); }
+        public string GameSubtitle
+        {
+            get => _gameSubtitle;
+            set => Set(ref _gameSubtitle, value);
+        }
 
         private int _completionPercent;
-        public int CompletionPercent { get => _completionPercent; set { Set(ref _completionPercent, value); Raise(nameof(CompletionText)); } }
+        public int CompletionPercent
+        {
+            get => _completionPercent;
+            set
+            {
+                Set(ref _completionPercent, value);
+                Raise(nameof(CompletionText));
+            }
+        }
         public string CompletionText => CompletionPercent + "%";
 
         private System.Windows.Media.ImageSource _gameIcon;
-        public System.Windows.Media.ImageSource GameIcon { get => _gameIcon; set => Set(ref _gameIcon, value); }
+        public System.Windows.Media.ImageSource GameIcon
+        {
+            get => _gameIcon;
+            set => Set(ref _gameIcon, value);
+        }
 
         private bool _hasGame;
-        public bool HasGame { get => _hasGame; set { Set(ref _hasGame, value); Raise(nameof(EmptyHintVisible)); Raise(nameof(WindowTitle)); } }
+        public bool HasGame
+        {
+            get => _hasGame;
+            set
+            {
+                Set(ref _hasGame, value);
+                Raise(nameof(EmptyHintVisible));
+                Raise(nameof(WindowTitle));
+            }
+        }
         public bool EmptyHintVisible => !HasGame;
 
         private bool _isBusy;
-        public bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set => Set(ref _isBusy, value);
+        }
 
         // A brief, non-blocking confirmation that fades in at the bottom (replaces modal "Saved." popups).
         private string _toastText = "";
-        public string ToastText { get => _toastText; set => Set(ref _toastText, value); }
+        public string ToastText
+        {
+            get => _toastText;
+            set => Set(ref _toastText, value);
+        }
         private bool _toastVisible;
-        public bool ToastVisible { get => _toastVisible; set => Set(ref _toastVisible, value); }
+        public bool ToastVisible
+        {
+            get => _toastVisible;
+            set => Set(ref _toastVisible, value);
+        }
         private int _toastSeq;
+
         public async void ShowToast(string message)
         {
             ToastText = message;
             ToastVisible = true;
             int seq = ++_toastSeq;
             await Task.Delay(2600);
-            if (seq == _toastSeq) ToastVisible = false;
+            if (seq == _toastSeq)
+                ToastVisible = false;
         }
 
         private string _busyText = "Working…";
-        public string BusyText { get => _busyText; set => Set(ref _busyText, value); }
+        public string BusyText
+        {
+            get => _busyText;
+            set => Set(ref _busyText, value);
+        }
 
         public ICommand OpenCommand { get; }
         public ICommand SaveCommand { get; }
@@ -95,11 +164,23 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public MainViewModel()
         {
             OpenCommand = new RelayCommand(Open, () => !IsBusy);
-            SaveCommand = new RelayCommand(async () => await SaveAsync(), () => _doc.IsOpen && !IsBusy);
+            SaveCommand = new RelayCommand(
+                async () => await SaveAsync(),
+                () => _doc.IsOpen && !IsBusy
+            );
             RefreshCommand = new RelayCommand(Refresh, () => _doc.IsOpen && !IsBusy);
-            ScrapeCommand = new RelayCommand(async () => await ScrapeAsync(), () => _doc.IsOpen && !IsBusy);
-            RelocateCommand = new RelayCommand(async () => await RelocateAsync(), () => _doc.IsOpen && HasDonor && !IsBusy);
-            ClearCommand = new RelayCommand(async () => await ClearAllAsync(), () => _doc.IsOpen && !IsBusy);
+            ScrapeCommand = new RelayCommand(
+                async () => await ScrapeAsync(),
+                () => _doc.IsOpen && !IsBusy
+            );
+            RelocateCommand = new RelayCommand(
+                async () => await RelocateAsync(),
+                () => _doc.IsOpen && HasDonor && !IsBusy
+            );
+            ClearCommand = new RelayCommand(
+                async () => await ClearAllAsync(),
+                () => _doc.IsOpen && !IsBusy
+            );
             ClearDonorCommand = new RelayCommand(ClearDonor);
             SetMyUserCommand = new RelayCommand(async () => await SetMyUserAsync(), () => !IsBusy);
             MyGamesCommand = new RelayCommand(async () => await LoadMyGamesAsync(), () => !IsBusy);
@@ -132,8 +213,12 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 foreach (var f in new DirectoryInfo("profiles").GetFiles("*.sfo"))
                     Profiles.Add(f.Name);
             }
-            catch { /* no profiles dir → just Default */ }
-            SelectedProfile = Profiles.Contains(Settings.LastProfile) ? Settings.LastProfile : TrophyDocument.DefaultProfile;
+            catch
+            { /* no profiles dir → just Default */
+            }
+            SelectedProfile = Profiles.Contains(Settings.LastProfile)
+                ? Settings.LastProfile
+                : TrophyDocument.DefaultProfile;
         }
 
         public void Open()
@@ -162,12 +247,16 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 await Modern.Info(ex.Message, "Open failed");
             }
-            finally { IsBusy = false; }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         public void Refresh()
         {
-            if (!_doc.IsOpen) return;
+            if (!_doc.IsOpen)
+                return;
             _allRows = _doc.BuildRows();
             ApplyFilter();
 
@@ -177,7 +266,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
             CompletionPercent = s.Percent;
             GameIcon = _doc.LoadGameIcon();
             HasGame = true;
-            if (HasDonor) RebuildComparison();
+            if (HasDonor)
+                RebuildComparison();
         }
 
         public async Task SaveAsync(bool notify = true)
@@ -190,7 +280,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 await Task.Run(() => _doc.Save(profile));
                 SetDirty(false);
                 IsBusy = false;
-                if (notify) ShowToast("Saved");
+                if (notify)
+                    ShowToast("Saved");
             }
             catch (Exception ex)
             {
@@ -201,7 +292,12 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
         private async Task ClearAllAsync()
         {
-            if (!await Modern.Confirm("Lock every trophy (clear all unlock times)?", "Clear trophies"))
+            if (
+                !await Modern.Confirm(
+                    "Lock every trophy (clear all unlock times)?",
+                    "Clear trophies"
+                )
+            )
                 return;
             _doc.ClearAll();
             SetDirty(true);

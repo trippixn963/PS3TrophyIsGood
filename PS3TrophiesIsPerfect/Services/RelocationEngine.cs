@@ -8,9 +8,16 @@ namespace PS3TrophiesIsPerfect.Services
     {
         public int Sessions;
         public bool PlatEarned;
-        public DateTime First, Last;
+        public DateTime First,
+            Last;
+
         public RelocationResult(int sessions, bool platEarned, DateTime first, DateTime last)
-        { Sessions = sessions; PlatEarned = platEarned; First = first; Last = last; }
+        {
+            Sessions = sessions;
+            PlatEarned = platEarned;
+            First = first;
+            Last = last;
+        }
     }
 
     /// <summary>
@@ -24,7 +31,11 @@ namespace PS3TrophiesIsPerfect.Services
     /// </summary>
     public static class RelocationEngine
     {
-        public static RelocationResult Rebuild(long[] timesArr, DateTime startDate, bool hasPlatinum)
+        public static RelocationResult Rebuild(
+            long[] timesArr,
+            DateTime startDate,
+            bool hasPlatinum
+        )
         {
             const int SessionStartHour = 22;
             const int NightStartJitterMinutes = 75;
@@ -40,7 +51,8 @@ namespace PS3TrophiesIsPerfect.Services
             var times = timesArr.ToList();
             var original = new List<long>(times);
 
-            if (startDate.Date > DateTime.Today) startDate = DateTime.Today;
+            if (startDate.Date > DateTime.Today)
+                startDate = DateTime.Today;
             startDate = startDate.Date;
 
             // Donor trophies (incl. the platinum at index 0), in unlock order.
@@ -89,9 +101,11 @@ namespace PS3TrophiesIsPerfect.Services
                     {
                         naturalSessions++;
                         elapsed = 0;
-                        nightLenSec = (long)rand.Next(MinSessionMinutes, MaxSessionMinutes + 1) * 60;
+                        nightLenSec =
+                            (long)rand.Next(MinSessionMinutes, MaxSessionMinutes + 1) * 60;
                     }
-                    else elapsed += add[k];
+                    else
+                        elapsed += add[k];
                 }
             }
 
@@ -145,9 +159,9 @@ namespace PS3TrophiesIsPerfect.Services
                     int dayOffset = (int)Math.Round((double)s / (sessions - 1) * windowDays);
                     nightDay[s] = startDate.AddDays(dayOffset);
                 }
-                nightDay[0] = startDate;                  // first trophy is exactly on the chosen start
-                nightDay[sessions - 1] = DateTime.Today;  // last session is today (platinum pops now)
-                for (int s = 1; s < sessions; s++)         // keep days strictly increasing
+                nightDay[0] = startDate; // first trophy is exactly on the chosen start
+                nightDay[sessions - 1] = DateTime.Today; // last session is today (platinum pops now)
+                for (int s = 1; s < sessions; s++) // keep days strictly increasing
                     if (nightDay[s] <= nightDay[s - 1])
                         nightDay[s] = nightDay[s - 1].AddDays(1);
             }
@@ -209,8 +223,12 @@ namespace PS3TrophiesIsPerfect.Services
 
             long firstUnlock = times.Where(t => t != 0).Min();
             long lastUnlock = times.Where(t => t != 0).Max();
-            return new RelocationResult(sessions, platEarned,
-                firstUnlock.TimeStampToDateTime(), lastUnlock.TimeStampToDateTime());
+            return new RelocationResult(
+                sessions,
+                platEarned,
+                firstUnlock.TimeStampToDateTime(),
+                lastUnlock.TimeStampToDateTime()
+            );
         }
     }
 }

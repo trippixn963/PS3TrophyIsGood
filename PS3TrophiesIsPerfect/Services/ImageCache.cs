@@ -15,11 +15,14 @@ namespace PS3TrophiesIsPerfect.Services
     {
         private static readonly string Dir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "PS3TrophiesIsPerfect", "imgcache");
+            "PS3TrophiesIsPerfect",
+            "imgcache"
+        );
 
         public static ImageSource Get(string url, string cacheKey)
         {
-            if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(cacheKey)) return null;
+            if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(cacheKey))
+                return null;
             try
             {
                 Directory.CreateDirectory(Dir);
@@ -32,7 +35,10 @@ namespace PS3TrophiesIsPerfect.Services
                 }
                 return ImageLoad.FromFile(file);
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         private static string Sanitize(string key) => Regex.Replace(key, "[^A-Za-z0-9_.-]", "_");

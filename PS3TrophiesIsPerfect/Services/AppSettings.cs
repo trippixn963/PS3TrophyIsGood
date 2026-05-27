@@ -31,7 +31,8 @@ namespace PS3TrophiesIsPerfect.Services
 
         /// <summary>Cached "My PS3 Games" list (completed games never change, so this is safe to keep).</summary>
         public string MyGamesUser { get; set; } = "";
-        public System.Collections.Generic.List<Models.GameProgress> MyGamesCache { get; set; } = new System.Collections.Generic.List<Models.GameProgress>();
+        public System.Collections.Generic.List<Models.GameProgress> MyGamesCache { get; set; } =
+            new System.Collections.Generic.List<Models.GameProgress>();
 
         /// <summary>PSN auth (for My PS3 Games / trophy detail, via Sony's own data). The NPSSO is kept so
         /// tokens can be silently re-minted; all expire eventually and the user is re-prompted when they do.</summary>
@@ -39,10 +40,14 @@ namespace PS3TrophiesIsPerfect.Services
         public string PsnAccessToken { get; set; } = "";
         public string PsnRefreshToken { get; set; } = "";
         public DateTime PsnAccessExpiryUtc { get; set; } = DateTime.MinValue;
-        public System.Collections.Generic.List<DonorEntry> Donor { get; set; } = new System.Collections.Generic.List<DonorEntry>();
+        public System.Collections.Generic.List<DonorEntry> Donor { get; set; } =
+            new System.Collections.Generic.List<DonorEntry>();
 
         private static string Dir =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PS3TrophiesIsPerfect");
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "PS3TrophiesIsPerfect"
+            );
         private static string FilePath => Path.Combine(Dir, "settings.json");
 
         public static AppSettings Load()
@@ -50,9 +55,12 @@ namespace PS3TrophiesIsPerfect.Services
             try
             {
                 if (File.Exists(FilePath))
-                    return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
+                    return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath))
+                        ?? new AppSettings();
             }
-            catch { /* corrupt/missing → defaults */ }
+            catch
+            { /* corrupt/missing → defaults */
+            }
             return new AppSettings();
         }
 
@@ -61,9 +69,17 @@ namespace PS3TrophiesIsPerfect.Services
             try
             {
                 Directory.CreateDirectory(Dir);
-                File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(
+                    FilePath,
+                    JsonSerializer.Serialize(
+                        this,
+                        new JsonSerializerOptions { WriteIndented = true }
+                    )
+                );
             }
-            catch { /* best effort */ }
+            catch
+            { /* best effort */
+            }
         }
     }
 }

@@ -12,14 +12,23 @@ namespace PS3TrophiesIsPerfect.Models
     {
         public ImageSource Badge { get; }
         public string Count { get; }
-        public TrophyTypeCount(string asset, int count) { Badge = Cached(asset); Count = count.ToString(); }
+
+        public TrophyTypeCount(string asset, int count)
+        {
+            Badge = Cached(asset);
+            Count = count.ToString();
+        }
 
         // The four badges are shared, frozen, embedded assets — load each once.
-        private static readonly Dictionary<string, ImageSource> _cache = new Dictionary<string, ImageSource>();
+        private static readonly Dictionary<string, ImageSource> _cache =
+            new Dictionary<string, ImageSource>();
+
         private static ImageSource Cached(string asset)
         {
             if (!_cache.TryGetValue(asset, out var img))
-                _cache[asset] = img = ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + asset + ".png");
+                _cache[asset] = img = ImageLoad.FromPack(
+                    "pack://application:,,,/Assets/TrophyTypes/" + asset + ".png"
+                );
             return img;
         }
     }
@@ -46,8 +55,11 @@ namespace PS3TrophiesIsPerfect.Models
         /// <summary>When trophies for this game were last earned/updated — for the "Recent" sort.</summary>
         public DateTime LastUpdated { get; set; }
 
-        [JsonIgnore] public string CountText => Earned + " / " + Total + " trophies";
-        [JsonIgnore] public string PercentText => Percent + "%";
+        [JsonIgnore]
+        public string CountText => Earned + " / " + Total + " trophies";
+
+        [JsonIgnore]
+        public string PercentText => Percent + "%";
 
         /// <summary>Type breakdown for the count strip (only types the game actually has). "platinum"→plat.png.</summary>
         [JsonIgnore]
@@ -56,21 +68,30 @@ namespace PS3TrophiesIsPerfect.Models
             get
             {
                 var list = new List<TrophyTypeCount>();
-                if (Platinum > 0) list.Add(new TrophyTypeCount("plat", Platinum));
-                if (Gold > 0) list.Add(new TrophyTypeCount("gold", Gold));
-                if (Silver > 0) list.Add(new TrophyTypeCount("silver", Silver));
-                if (Bronze > 0) list.Add(new TrophyTypeCount("bronze", Bronze));
+                if (Platinum > 0)
+                    list.Add(new TrophyTypeCount("plat", Platinum));
+                if (Gold > 0)
+                    list.Add(new TrophyTypeCount("gold", Gold));
+                if (Silver > 0)
+                    list.Add(new TrophyTypeCount("silver", Silver));
+                if (Bronze > 0)
+                    list.Add(new TrophyTypeCount("bronze", Bronze));
                 return list;
             }
         }
 
         /// <summary>The game banner — set after the list shows (downloaded from Sony's CDN + cached on disk).</summary>
         private ImageSource _icon;
+
         [JsonIgnore]
         public ImageSource Icon
         {
             get => _icon;
-            set { _icon = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon))); }
+            set
+            {
+                _icon = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon)));
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

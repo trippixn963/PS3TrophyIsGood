@@ -47,11 +47,17 @@ namespace PS3TrophiesIsPerfect.Services
             var result = RunPfdTool(" -d \"" + saveDir + "\" TROPTRNS.DAT");
             if (result.ExitCode != 0)
             {
-                string detail = string.IsNullOrWhiteSpace(result.Output) ? "(no output)" : result.Output.Trim();
+                string detail = string.IsNullOrWhiteSpace(result.Output)
+                    ? "(no output)"
+                    : result.Output.Trim();
                 throw new Exception(
-                    "Couldn't decrypt the trophy data (pfdtool exited " + result.ExitCode + ").\n\n" + detail
+                    "Couldn't decrypt the trophy data (pfdtool exited "
+                        + result.ExitCode
+                        + ").\n\n"
+                        + detail
                         + "\n\nIf pfdtool didn't run at all, install the Microsoft Visual C++ Redistributable: "
-                        + "https://www.microsoft.com/download/details.aspx?id=5555");
+                        + "https://www.microsoft.com/download/details.aspx?id=5555"
+                );
             }
             if (result.Output != PfdToolBanner)
             {
@@ -71,7 +77,11 @@ namespace PS3TrophiesIsPerfect.Services
                     br.BaseStream.Position = br.ReadInt32();
                     profileId = br.ReadBytes(0x10);
                 }
-                using (var bw = new BinaryWriter(new FileStream(saveDir + "\\PARAM.SFO", FileMode.Open)))
+                using (
+                    var bw = new BinaryWriter(
+                        new FileStream(saveDir + "\\PARAM.SFO", FileMode.Open)
+                    )
+                )
                 {
                     bw.BaseStream.Position = 0x274;
                     bw.Write(profileId);
@@ -112,7 +122,8 @@ namespace PS3TrophiesIsPerfect.Services
             if (!dir.Exists)
             {
                 throw new DirectoryNotFoundException(
-                    "Source directory does not exist or could not be found: " + source);
+                    "Source directory does not exist or could not be found: " + source
+                );
             }
 
             Directory.CreateDirectory(target);

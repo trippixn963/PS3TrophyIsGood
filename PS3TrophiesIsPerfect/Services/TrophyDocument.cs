@@ -49,7 +49,8 @@ namespace PS3TrophiesIsPerfect.Services
 
         public void Save(string profile = DefaultProfile)
         {
-            if (!IsOpen) return;
+            if (!IsOpen)
+                return;
             _tpsn.Save();
             _tusr.Save();
             string encPathTemp = Utility.GetTemporaryDirectory();
@@ -76,8 +77,13 @@ namespace PS3TrophiesIsPerfect.Services
             IsOpen = false;
             if (!string.IsNullOrEmpty(temp))
             {
-                try { Utility.DeleteDirectory(new DirectoryInfo(temp).Parent.FullName); }
-                catch { /* best effort */ }
+                try
+                {
+                    Utility.DeleteDirectory(new DirectoryInfo(temp).Parent.FullName);
+                }
+                catch
+                { /* best effort */
+                }
             }
         }
 
@@ -110,26 +116,44 @@ namespace PS3TrophiesIsPerfect.Services
 
         public CompletionStats Stats()
         {
-            int totalGrade = 0, getGrade = 0, got = 0;
+            int totalGrade = 0,
+                getGrade = 0,
+                got = 0;
             for (int i = 0; i < _tconf.Count; i++)
             {
                 int g = GradeOf((TropType)_tusr.trophyTypeTable[i].Type);
                 totalGrade += g;
-                if (IsTrophyGot(i)) { getGrade += g; got++; }
+                if (IsTrophyGot(i))
+                {
+                    getGrade += g;
+                    got++;
+                }
             }
             int pct = totalGrade > 0 ? (int)Math.Round(getGrade * 100.0 / totalGrade) : 0;
-            return new CompletionStats(got, _tconf.Count, getGrade, totalGrade, pct, _tconf.title_name);
+            return new CompletionStats(
+                got,
+                _tconf.Count,
+                getGrade,
+                totalGrade,
+                pct,
+                _tconf.title_name
+            );
         }
 
         private static int GradeOf(TropType t)
         {
             switch (t)
             {
-                case TropType.Platinum: return (int)TropGrade.Platinum;
-                case TropType.Gold: return (int)TropGrade.Gold;
-                case TropType.Silver: return (int)TropGrade.Silver;
-                case TropType.Bronze: return (int)TropGrade.Bronze;
-                default: return 0;
+                case TropType.Platinum:
+                    return (int)TropGrade.Platinum;
+                case TropType.Gold:
+                    return (int)TropGrade.Gold;
+                case TropType.Silver:
+                    return (int)TropGrade.Silver;
+                case TropType.Bronze:
+                    return (int)TropGrade.Bronze;
+                default:
+                    return 0;
             }
         }
 
@@ -142,7 +166,8 @@ namespace PS3TrophiesIsPerfect.Services
                 if (_tconf[i].gid == 0)
                     _baseGameCount = i;
 
-                bool got, synced;
+                bool got,
+                    synced;
                 DateTime? time;
                 if (_tpsn[i].HasValue)
                 {
@@ -158,18 +183,20 @@ namespace PS3TrophiesIsPerfect.Services
                     time = tti.Time.Ticks > 0 ? tti.Time : (DateTime?)null;
                 }
 
-                rows.Add(new TrophyRow
-                {
-                    Id = i,
-                    Name = _tconf[i].name,
-                    Detail = _tconf[i].detail,
-                    Type = TypeLetter(_tconf[i].ttype),
-                    Got = got,
-                    Synced = synced,
-                    Time = got ? time : null,
-                    Elapsed = diffs.TryGetValue(i, out string d) ? d : string.Empty,
-                    Icon = LoadIcon(_tconf[i].id),
-                });
+                rows.Add(
+                    new TrophyRow
+                    {
+                        Id = i,
+                        Name = _tconf[i].name,
+                        Detail = _tconf[i].detail,
+                        Type = TypeLetter(_tconf[i].ttype),
+                        Got = got,
+                        Synced = synced,
+                        Time = got ? time : null,
+                        Elapsed = diffs.TryGetValue(i, out string d) ? d : string.Empty,
+                        Icon = LoadIcon(_tconf[i].id),
+                    }
+                );
             }
             return rows;
         }
@@ -209,7 +236,10 @@ namespace PS3TrophiesIsPerfect.Services
                     icon = LoadIcon(_tconf[li].id);
                     myTime = UnlockTimeOf(li);
                 }
-                TimeSpan? myGap = (k > 0 && myTime.HasValue && myPrev.HasValue) ? myTime.Value - myPrev.Value : (TimeSpan?)null;
+                TimeSpan? myGap =
+                    (k > 0 && myTime.HasValue && myPrev.HasValue)
+                        ? myTime.Value - myPrev.Value
+                        : (TimeSpan?)null;
 
                 var row = new ComparisonRow
                 {
@@ -219,19 +249,45 @@ namespace PS3TrophiesIsPerfect.Services
                     Icon = icon,
                     DonorTimeText = dTime.ToString("yyyy/MM/dd  HH:mm:ss"),
                     DonorGapText = dGap == null ? "" : "+" + FormatSpan(dGap.Value),
-                    MyTimeText = myTime.HasValue ? myTime.Value.ToString("yyyy/MM/dd  HH:mm:ss") : "—",
+                    MyTimeText = myTime.HasValue
+                        ? myTime.Value.ToString("yyyy/MM/dd  HH:mm:ss")
+                        : "—",
                     MyGapText = myGap == null ? "" : "+" + FormatSpan(myGap.Value),
                 };
 
-                if (!myTime.HasValue) { row.Match = "missing"; row.MatchText = "—"; }
-                else if (dGap == null) { row.Match = "first"; row.MatchText = "—"; }
-                else if (myGap == null) { row.Match = "missing"; row.MatchText = "—"; }
+                if (!myTime.HasValue)
+                {
+                    row.Match = "missing";
+                    row.MatchText = "—";
+                }
+                else if (dGap == null)
+                {
+                    row.Match = "first";
+                    row.MatchText = "—";
+                }
+                else if (myGap == null)
+                {
+                    row.Match = "missing";
+                    row.MatchText = "—";
+                }
                 else
                 {
                     long sec = (long)System.Math.Round((myGap.Value - dGap.Value).TotalSeconds);
-                    if (sec == 0) { row.Match = "exact"; row.MatchText = "✓ exact"; }
-                    else if (sec > 0) { row.Match = "slower"; row.MatchText = "+" + FormatSpan(System.TimeSpan.FromSeconds(sec)); }
-                    else { row.Match = "faster"; row.MatchText = "⚠ −" + FormatSpan(System.TimeSpan.FromSeconds(-sec)); }
+                    if (sec == 0)
+                    {
+                        row.Match = "exact";
+                        row.MatchText = "✓ exact";
+                    }
+                    else if (sec > 0)
+                    {
+                        row.Match = "slower";
+                        row.MatchText = "+" + FormatSpan(System.TimeSpan.FromSeconds(sec));
+                    }
+                    else
+                    {
+                        row.Match = "faster";
+                        row.MatchText = "⚠ −" + FormatSpan(System.TimeSpan.FromSeconds(-sec));
+                    }
                 }
 
                 rows.Add(row);
@@ -244,7 +300,8 @@ namespace PS3TrophiesIsPerfect.Services
         /// <summary>Normalises the parser's ttype ("P"/"G"/"S"/"B" or longer) to a single letter.</summary>
         private static string TypeLetter(string ttype)
         {
-            if (string.IsNullOrEmpty(ttype)) return "";
+            if (string.IsNullOrEmpty(ttype))
+                return "";
             return ttype.Substring(0, 1).ToUpperInvariant();
         }
 
@@ -255,13 +312,22 @@ namespace PS3TrophiesIsPerfect.Services
                 string file = Path.Combine(_path, "TROP" + tropId.ToString("000") + ".PNG");
                 return ImageLoad.FromFile(file);
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         public System.Windows.Media.ImageSource LoadGameIcon()
         {
-            try { return ImageLoad.FromFile(Path.Combine(_path, "ICON0.PNG")); }
-            catch { return null; }
+            try
+            {
+                return ImageLoad.FromFile(Path.Combine(_path, "ICON0.PNG"));
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private Dictionary<int, string> ComputeTimeDiffStrings()
@@ -278,7 +344,11 @@ namespace PS3TrophiesIsPerfect.Services
             var result = new Dictionary<int, string>();
             for (int k = 0; k < unlocked.Count; k++)
             {
-                if (k == 0) { result[unlocked[k].Key] = string.Empty; continue; }
+                if (k == 0)
+                {
+                    result[unlocked[k].Key] = string.Empty;
+                    continue;
+                }
                 TimeSpan elapsed = unlocked[k].Value - unlocked[0].Value;
                 if (k == 1)
                     result[unlocked[k].Key] = FormatSpan(elapsed);
@@ -293,11 +363,15 @@ namespace PS3TrophiesIsPerfect.Services
 
         private static string FormatSpan(TimeSpan ts)
         {
-            if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
+            if (ts < TimeSpan.Zero)
+                ts = TimeSpan.Zero;
             var sb = new System.Text.StringBuilder();
-            if (ts.Days > 0) sb.Append(ts.Days).Append("d ");
-            if (ts.Hours > 0) sb.Append(ts.Hours).Append("h ");
-            if (ts.Minutes > 0) sb.Append(ts.Minutes).Append("m ");
+            if (ts.Days > 0)
+                sb.Append(ts.Days).Append("d ");
+            if (ts.Hours > 0)
+                sb.Append(ts.Hours).Append("h ");
+            if (ts.Minutes > 0)
+                sb.Append(ts.Minutes).Append("m ");
             sb.Append(ts.Seconds).Append('s');
             return sb.ToString();
         }
@@ -307,9 +381,14 @@ namespace PS3TrophiesIsPerfect.Services
         /// <summary>Throws with a user-facing message when the edit isn't allowed.</summary>
         public void Unlock(int id, DateTime time)
         {
-            if (IsTrophySync(id)) throw new InvalidOperationException("Trophy already synchronized. Can't be modified.");
+            if (IsTrophySync(id))
+                throw new InvalidOperationException(
+                    "Trophy already synchronized. Can't be modified."
+                );
             if (id == 0 && _tconf.HasPlatinium && GetCountBaseTrophiesGot() < _baseGameCount)
-                throw new InvalidOperationException("You can't unlock the platinum while other trophies are still locked.");
+                throw new InvalidOperationException(
+                    "You can't unlock the platinum while other trophies are still locked."
+                );
             ValidateDate(time);
             _tpsn.PutTrophy(id, _tusr.trophyTypeTable[id].Type, time);
             _tusr.UnlockTrophy(id, time);
@@ -317,7 +396,10 @@ namespace PS3TrophiesIsPerfect.Services
 
         public void ChangeTime(int id, DateTime time)
         {
-            if (IsTrophySync(id)) throw new InvalidOperationException("Trophy already synchronized. Can't be modified.");
+            if (IsTrophySync(id))
+                throw new InvalidOperationException(
+                    "Trophy already synchronized. Can't be modified."
+                );
             ValidateDate(time);
             _tpsn.ChangeTime(id, time);
             TROPUSR.TrophyTimeInfo tti = _tusr.trophyTimeInfoTable[id];
@@ -327,25 +409,36 @@ namespace PS3TrophiesIsPerfect.Services
 
         public void Delete(int id)
         {
-            if (IsTrophySync(id)) throw new InvalidOperationException("Trophy already synchronized. Can't be modified.");
+            if (IsTrophySync(id))
+                throw new InvalidOperationException(
+                    "Trophy already synchronized. Can't be modified."
+                );
             if (id != 0 && _tconf[id].gid == 0 && IsTrophyGot(0))
-                throw new InvalidOperationException("You can't lock other trophies while the platinum is unlocked.");
+                throw new InvalidOperationException(
+                    "You can't lock other trophies while the platinum is unlocked."
+                );
             _tpsn.DeleteTrophyByID(id);
             _tusr.LockTrophy(id);
         }
 
         public bool HasTime(int id) => _tpsn[id].HasValue;
+
         public bool IsSynced(int id) => IsTrophySync(id);
+
         public bool IsGot(int id) => IsTrophyGot(id);
+
         public DateTime? TimeOf(int id) => UnlockTimeOf(id);
+
         public DateTime EarliestAllowed => _lastSyncTrophyTime;
 
         private void ValidateDate(DateTime t)
         {
             if (DateTime.Compare(_lastSyncTrophyTime, t) > 0)
                 throw new InvalidOperationException(
-                    "The last trophy synchronized with PSN is dated " + _lastSyncTrophyTime +
-                    ". Pick a later date.");
+                    "The last trophy synchronized with PSN is dated "
+                        + _lastSyncTrophyTime
+                        + ". Pick a later date."
+                );
         }
 
         public void ClearAll()
@@ -364,7 +457,11 @@ namespace PS3TrophiesIsPerfect.Services
         /// Maps scraped trophies onto the loaded game's table by normalised name. Returns a per-index
         /// times array (Unix seconds, 0 = unmatched), plus the matched/unmatched name lists.
         /// </summary>
-        public long[] MatchScrape(IEnumerable<ScrapedTrophy> scraped, out int matched, out List<string> unmatched)
+        public long[] MatchScrape(
+            IEnumerable<ScrapedTrophy> scraped,
+            out int matched,
+            out List<string> unmatched
+        )
         {
             var indexByName = new Dictionary<string, int>(StringComparer.Ordinal);
             for (int i = 0; i < _tconf.Count; i++)
@@ -380,13 +477,18 @@ namespace PS3TrophiesIsPerfect.Services
             unmatched = new List<string>();
             foreach (var p in scraped)
             {
-                if (string.IsNullOrWhiteSpace(p.Name)) continue;
-                if (indexByName.TryGetValue(NormalizeTrophyName(p.Name), out int idx) && idx < count)
+                if (string.IsNullOrWhiteSpace(p.Name))
+                    continue;
+                if (
+                    indexByName.TryGetValue(NormalizeTrophyName(p.Name), out int idx)
+                    && idx < count
+                )
                 {
                     times[idx] = p.Date;
                     matched++;
                 }
-                else unmatched.Add(p.Name);
+                else
+                    unmatched.Add(p.Name);
             }
             return times;
         }
@@ -411,7 +513,8 @@ namespace PS3TrophiesIsPerfect.Services
 
         private static string NormalizeTrophyName(string name)
         {
-            if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(name))
+                return string.Empty;
             string n = name.Normalize(System.Text.NormalizationForm.FormKC);
             var sb = new System.Text.StringBuilder(n.Length);
             foreach (char c in n)
@@ -428,16 +531,34 @@ namespace PS3TrophiesIsPerfect.Services
         /// donor's EXACT gaps; every other gap is the donor's plus a few minutes (never faster); nothing is ever
         /// dated in the future. Mutates <paramref name="times"/> in place. (Ported from MainAPP.MaybeRelocateToNightSessions.)
         /// </summary>
-        public RelocationResult RelocateToNightSessions(long[] timesArr, DateTime startDate)
-            => RelocationEngine.Rebuild(timesArr, startDate, HasPlatinum);
+        public RelocationResult RelocateToNightSessions(long[] timesArr, DateTime startDate) =>
+            RelocationEngine.Rebuild(timesArr, startDate, HasPlatinum);
     }
 
     public struct CompletionStats
     {
-        public int Got, Total, GetGrade, TotalGrade, Percent;
+        public int Got,
+            Total,
+            GetGrade,
+            TotalGrade,
+            Percent;
         public string Title;
-        public CompletionStats(int got, int total, int getGrade, int totalGrade, int percent, string title)
-        { Got = got; Total = total; GetGrade = getGrade; TotalGrade = totalGrade; Percent = percent; Title = title; }
-    }
 
+        public CompletionStats(
+            int got,
+            int total,
+            int getGrade,
+            int totalGrade,
+            int percent,
+            string title
+        )
+        {
+            Got = got;
+            Total = total;
+            GetGrade = getGrade;
+            TotalGrade = totalGrade;
+            Percent = percent;
+            Title = title;
+        }
+    }
 }

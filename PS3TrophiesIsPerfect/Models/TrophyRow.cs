@@ -33,7 +33,8 @@ namespace PS3TrophiesIsPerfect.Models
 
         // ---- Card display helpers ----
         public double RowOpacity => Got ? 1.0 : 0.45;
-        public string TimeDisplay => Got ? (Time?.ToString("d MMM yyyy  h:mm tt") ?? "Unlocked") : "Locked";
+        public string TimeDisplay =>
+            Got ? (Time?.ToString("d MMM yyyy  h:mm tt") ?? "Unlocked") : "Locked";
         public string StatusText => Synced ? "Synced" : (Got ? "Unlocked" : "Locked");
         public string ElapsedDisplay => Got ? (Elapsed ?? "") : "";
 
@@ -41,7 +42,8 @@ namespace PS3TrophiesIsPerfect.Models
         public ImageSource Display => Icon ?? TypeBadge;
 
         // The four type badges are shared, frozen, embedded assets — load each once.
-        private static readonly Dictionary<string, ImageSource> _badgeCache = new Dictionary<string, ImageSource>();
+        private static readonly Dictionary<string, ImageSource> _badgeCache =
+            new Dictionary<string, ImageSource>();
         public ImageSource TypeBadge
         {
             get
@@ -49,14 +51,25 @@ namespace PS3TrophiesIsPerfect.Models
                 string name;
                 switch (Type)
                 {
-                    case "P": name = "plat"; break;
-                    case "G": name = "gold"; break;
-                    case "S": name = "silver"; break;
-                    case "B": name = "bronze"; break;
-                    default: return null;
+                    case "P":
+                        name = "plat";
+                        break;
+                    case "G":
+                        name = "gold";
+                        break;
+                    case "S":
+                        name = "silver";
+                        break;
+                    case "B":
+                        name = "bronze";
+                        break;
+                    default:
+                        return null;
                 }
                 if (!_badgeCache.TryGetValue(name, out var img))
-                    _badgeCache[name] = img = ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + name + ".png");
+                    _badgeCache[name] = img = ImageLoad.FromPack(
+                        "pack://application:,,,/Assets/TrophyTypes/" + name + ".png"
+                    );
                 return img;
             }
         }

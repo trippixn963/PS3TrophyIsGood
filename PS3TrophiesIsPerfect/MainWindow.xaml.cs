@@ -40,13 +40,22 @@ namespace PS3TrophiesIsPerfect
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint msg, uint action, IntPtr changeInfo);
+        private static extern bool ChangeWindowMessageFilterEx(
+            IntPtr hWnd,
+            uint msg,
+            uint action,
+            IntPtr changeInfo
+        );
 
         // --- custom title bar: window controls ---
-        private void Min_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+        private void Min_Click(object sender, RoutedEventArgs e) =>
+            WindowState = WindowState.Minimized;
+
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
         private void MaxRestore_Click(object sender, RoutedEventArgs e) =>
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            WindowState =
+                WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
         protected override void OnStateChanged(EventArgs e)
         {
@@ -63,12 +72,16 @@ namespace PS3TrophiesIsPerfect
             if (msg == WM_GETMINMAXINFO)
             {
                 var mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO));
-                IntPtr monitor = MonitorFromWindow(hwnd, 0x2 /* NEAREST */);
+                IntPtr monitor = MonitorFromWindow(
+                    hwnd,
+                    0x2 /* NEAREST */
+                );
                 if (monitor != IntPtr.Zero)
                 {
                     var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
                     GetMonitorInfo(monitor, ref info);
-                    RECT work = info.rcWork, mon = info.rcMonitor;
+                    RECT work = info.rcWork,
+                        mon = info.rcMonitor;
                     mmi.ptMaxPosition.x = work.left - mon.left;
                     mmi.ptMaxPosition.y = work.top - mon.top;
                     mmi.ptMaxSize.x = work.right - work.left;
@@ -83,28 +96,64 @@ namespace PS3TrophiesIsPerfect
             return IntPtr.Zero;
         }
 
-        [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
-        [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
 
-        [StructLayout(LayoutKind.Sequential)] private struct POINTL { public int x, y; }
-        [StructLayout(LayoutKind.Sequential)] private struct RECT { public int left, top, right, bottom; }
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
+
         [StructLayout(LayoutKind.Sequential)]
-        private struct MINMAXINFO { public POINTL ptReserved, ptMaxSize, ptMaxPosition, ptMinTrackSize, ptMaxTrackSize; }
+        private struct POINTL
+        {
+            public int x,
+                y;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
-        private struct MONITORINFO { public int cbSize; public RECT rcMonitor, rcWork; public int dwFlags; }
+        private struct RECT
+        {
+            public int left,
+                top,
+                right,
+                bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINTL ptReserved,
+                ptMaxSize,
+                ptMaxPosition,
+                ptMinTrackSize,
+                ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor,
+                rcWork;
+            public int dwFlags;
+        }
 
         // --- window bounds persistence ---
         private void RestoreWindowBounds()
         {
             var s = Vm.Settings;
-            if (s.WinWidth >= 300 && s.WinHeight >= 200) { Width = s.WinWidth; Height = s.WinHeight; }
+            if (s.WinWidth >= 300 && s.WinHeight >= 200)
+            {
+                Width = s.WinWidth;
+                Height = s.WinHeight;
+            }
             if (!double.IsNaN(s.WinLeft) && !double.IsNaN(s.WinTop))
             {
                 WindowStartupLocation = WindowStartupLocation.Manual;
                 Left = s.WinLeft;
                 Top = s.WinTop;
             }
-            if (s.WinMaximized) WindowState = WindowState.Maximized;
+            if (s.WinMaximized)
+                WindowState = WindowState.Maximized;
         }
 
         private void PersistWindowBounds()
@@ -114,12 +163,18 @@ namespace PS3TrophiesIsPerfect
             {
                 var rb = RestoreBounds;
                 s.WinMaximized = true;
-                s.WinLeft = rb.Left; s.WinTop = rb.Top; s.WinWidth = rb.Width; s.WinHeight = rb.Height;
+                s.WinLeft = rb.Left;
+                s.WinTop = rb.Top;
+                s.WinWidth = rb.Width;
+                s.WinHeight = rb.Height;
             }
             else
             {
                 s.WinMaximized = false;
-                s.WinLeft = Left; s.WinTop = Top; s.WinWidth = Width; s.WinHeight = Height;
+                s.WinLeft = Left;
+                s.WinTop = Top;
+                s.WinWidth = Width;
+                s.WinHeight = Height;
             }
             s.Save();
         }
@@ -132,9 +187,13 @@ namespace PS3TrophiesIsPerfect
             {
                 e.Cancel = true;
                 var choice = await Modern.SaveDiscardCancel(
-                    "You have unsaved changes. Save before closing?", "Unsaved changes");
-                if (choice == Modern.SaveChoice.Cancel) return;
-                if (choice == Modern.SaveChoice.Save) await Vm.SaveAsync(notify: false);
+                    "You have unsaved changes. Save before closing?",
+                    "Unsaved changes"
+                );
+                if (choice == Modern.SaveChoice.Cancel)
+                    return;
+                if (choice == Modern.SaveChoice.Save)
+                    await Vm.SaveAsync(notify: false);
                 _closeConfirmed = true;
                 Close();
                 return;
@@ -145,7 +204,10 @@ namespace PS3TrophiesIsPerfect
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            if (
+                e.Key == Key.F
+                && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
+            )
             {
                 FilterBox.Focus();
                 FilterBox.SelectAll();
@@ -168,7 +230,8 @@ namespace PS3TrophiesIsPerfect
 
         private async void Window_Drop(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                return;
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (paths.Length > 0 && Directory.Exists(paths[0]))
                 await Vm.OpenPath(paths[0]);

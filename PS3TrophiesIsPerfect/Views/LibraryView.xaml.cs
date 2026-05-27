@@ -13,7 +13,10 @@ namespace PS3TrophiesIsPerfect.Views
         // Double-clicking a game card opens that game's trophy detail (ignored for the trophy rows themselves).
         private void Game_DoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if ((e.OriginalSource as FrameworkElement)?.DataContext is GameProgress g && DataContext is MainViewModel vm)
+            if (
+                (e.OriginalSource as FrameworkElement)?.DataContext is GameProgress g
+                && DataContext is MainViewModel vm
+            )
                 _ = vm.OpenGameAsync(g);
         }
     }

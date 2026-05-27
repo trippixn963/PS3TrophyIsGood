@@ -31,13 +31,24 @@ namespace PS3TrophiesIsPerfect.Models
                 string name;
                 switch (Type)
                 {
-                    case "P": name = "plat"; break;
-                    case "G": name = "gold"; break;
-                    case "S": name = "silver"; break;
-                    case "B": name = "bronze"; break;
-                    default: return null;
+                    case "P":
+                        name = "plat";
+                        break;
+                    case "G":
+                        name = "gold";
+                        break;
+                    case "S":
+                        name = "silver";
+                        break;
+                    case "B":
+                        name = "bronze";
+                        break;
+                    default:
+                        return null;
                 }
-                return Services.ImageLoad.FromPack("pack://application:,,,/Assets/TrophyTypes/" + name + ".png");
+                return Services.ImageLoad.FromPack(
+                    "pack://application:,,,/Assets/TrophyTypes/" + name + ".png"
+                );
             }
         }
 
@@ -47,9 +58,12 @@ namespace PS3TrophiesIsPerfect.Models
             {
                 switch (Match)
                 {
-                    case "exact": return Green;
-                    case "faster": return Red;
-                    default: return Muted; // slower / first / missing
+                    case "exact":
+                        return Green;
+                    case "faster":
+                        return Red;
+                    default:
+                        return Muted; // slower / first / missing
                 }
             }
         }
@@ -58,6 +72,11 @@ namespace PS3TrophiesIsPerfect.Models
         private static readonly Brush Red = Frozen(Color.FromRgb(0xF8, 0x51, 0x49));
         private static readonly Brush Muted = Frozen(Color.FromRgb(0x8A, 0x8A, 0x8A));
 
-        private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
+        private static Brush Frozen(Color c)
+        {
+            var b = new SolidColorBrush(c);
+            b.Freeze();
+            return b;
+        }
     }
 }

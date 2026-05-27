@@ -15,7 +15,8 @@ namespace PS3TrophiesIsPerfect.Services
             return Load(new Uri(path, UriKind.Absolute));
         }
 
-        public static ImageSource FromPack(string packUri) => Load(new Uri(packUri, UriKind.Absolute));
+        public static ImageSource FromPack(string packUri) =>
+            Load(new Uri(packUri, UriKind.Absolute));
 
         private static ImageSource Load(Uri uri)
         {

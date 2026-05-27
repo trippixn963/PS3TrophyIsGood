@@ -24,14 +24,19 @@ namespace PS3TrophiesIsPerfect.Services
         private const string ClientId = "09515159-7237-4370-9b40-3806e67c0891";
         private const string RedirectUri = "com.scee.psxandroid.scecompcall://redirect";
         private const string Scope = "psn:mobile.v2.core psn:clientapp";
-        private const string BasicAuth = "Basic MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A=";
+        private const string BasicAuth =
+            "Basic MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A=";
         private const string UserAgent = "com.scee.psxandroid.scecompcall/6.30.0";
 
         /// <summary>Thrown when there is no usable token and no NPSSO to mint one — caller must prompt for a token.</summary>
         public sealed class AuthRequiredException : Exception { }
 
         private readonly AppSettings _s;
-        public PsnApi(AppSettings settings) { _s = settings; }
+
+        public PsnApi(AppSettings settings)
+        {
+            _s = settings;
+        }
 
         /// <summary>True once we have something to authenticate with (a stored NPSSO or refresh token).</summary>
         public bool HasCredentials =>
@@ -53,14 +58,19 @@ namespace PS3TrophiesIsPerfect.Services
         {
             string token = AccessToken();
             var games = new List<GameProgress>();
-            int offset = 0, totalItems = int.MaxValue;
+            int offset = 0,
+                totalItems = int.MaxValue;
             while (offset < totalItems)
             {
-                string json = ApiGet($"{ApiBase}/users/me/trophyTitles?limit=800&offset={offset}", token);
+                string json = ApiGet(
+                    $"{ApiBase}/users/me/trophyTitles?limit=800&offset={offset}",
+                    token
+                );
                 using (var doc = JsonDocument.Parse(json))
                 {
                     var root = doc.RootElement;
-                    if (!root.TryGetProperty("trophyTitles", out var titles)) break;
+                    if (!root.TryGetProperty("trophyTitles", out var titles))
+                        break;
                     totalItems = Int(root, "totalItemCount"); // across all platforms
 
                     int pageCount = 0;
@@ -68,32 +78,47 @@ namespace PS3TrophiesIsPerfect.Services
                     {
                         pageCount++;
                         string platform = Str(t, "trophyTitlePlatform");
-                        if (platform == null || platform.IndexOf("PS3", StringComparison.OrdinalIgnoreCase) < 0)
+                        if (
+                            platform == null
+                            || platform.IndexOf("PS3", StringComparison.OrdinalIgnoreCase) < 0
+                        )
                             continue;
 
                         var defined = t.TryGetProperty("definedTrophies", out var d) ? d : default;
                         DateTime lastUpdated = DateTime.MinValue;
-                        if (t.TryGetProperty("lastUpdatedDateTime", out var lu) && lu.ValueKind == JsonValueKind.String)
-                            DateTime.TryParse(lu.GetString(), null,
-                                System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
-                                out lastUpdated);
-                        games.Add(new GameProgress
-                        {
-                            Name = Str(t, "trophyTitleName"),
-                            GameId = Str(t, "npCommunicationId"),
-                            IconUrl = Str(t, "trophyTitleIconUrl"),
-                            Earned = SumTrophies(t, "earnedTrophies"),
-                            Total = SumTrophies(t, "definedTrophies"),
-                            Percent = Int(t, "progress"),
-                            Platinum = Int(defined, "platinum"),
-                            Gold = Int(defined, "gold"),
-                            Silver = Int(defined, "silver"),
-                            Bronze = Int(defined, "bronze"),
-                            HasDlc = t.TryGetProperty("hasTrophyGroups", out var h) && h.ValueKind == JsonValueKind.True,
-                            LastUpdated = lastUpdated,
-                        });
+                        if (
+                            t.TryGetProperty("lastUpdatedDateTime", out var lu)
+                            && lu.ValueKind == JsonValueKind.String
+                        )
+                            DateTime.TryParse(
+                                lu.GetString(),
+                                null,
+                                System.Globalization.DateTimeStyles.AdjustToUniversal
+                                    | System.Globalization.DateTimeStyles.AssumeUniversal,
+                                out lastUpdated
+                            );
+                        games.Add(
+                            new GameProgress
+                            {
+                                Name = Str(t, "trophyTitleName"),
+                                GameId = Str(t, "npCommunicationId"),
+                                IconUrl = Str(t, "trophyTitleIconUrl"),
+                                Earned = SumTrophies(t, "earnedTrophies"),
+                                Total = SumTrophies(t, "definedTrophies"),
+                                Percent = Int(t, "progress"),
+                                Platinum = Int(defined, "platinum"),
+                                Gold = Int(defined, "gold"),
+                                Silver = Int(defined, "silver"),
+                                Bronze = Int(defined, "bronze"),
+                                HasDlc =
+                                    t.TryGetProperty("hasTrophyGroups", out var h)
+                                    && h.ValueKind == JsonValueKind.True,
+                                LastUpdated = lastUpdated,
+                            }
+                        );
                     }
-                    if (pageCount == 0) break; // no more pages
+                    if (pageCount == 0)
+                        break; // no more pages
                     offset += pageCount;
                 }
             }
@@ -111,21 +136,33 @@ namespace PS3TrophiesIsPerfect.Services
             var groupName = new Dictionary<string, string>();
             try
             {
-                string groups = ApiGet($"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups?{svc}", token);
+                string groups = ApiGet(
+                    $"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups?{svc}",
+                    token
+                );
                 using (var doc = JsonDocument.Parse(groups))
                     if (doc.RootElement.TryGetProperty("trophyGroups", out var gs))
                         foreach (var g in gs.EnumerateArray())
                         {
                             string id = Str(g, "trophyGroupId");
-                            if (id == null) continue;
-                            groupName[id] = id == "default" ? "Base Game" : (Str(g, "trophyGroupName") ?? "DLC");
+                            if (id == null)
+                                continue;
+                            groupName[id] =
+                                id == "default"
+                                    ? "Base Game"
+                                    : (Str(g, "trophyGroupName") ?? "DLC");
                         }
             }
-            catch { /* no group info — everything becomes Base Game below */ }
+            catch
+            { /* no group info — everything becomes Base Game below */
+            }
 
             // 1) Definitions — names, descriptions, icons, types, which group each belongs to.
             var byId = new Dictionary<int, TrophyDetail>();
-            string defs = ApiGet($"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}", token);
+            string defs = ApiGet(
+                $"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}",
+                token
+            );
             using (var doc = JsonDocument.Parse(defs))
                 foreach (var tr in doc.RootElement.GetProperty("trophies").EnumerateArray())
                 {
@@ -139,23 +176,38 @@ namespace PS3TrophiesIsPerfect.Services
                         Detail = Str(tr, "trophyDetail") ?? "",
                         IconUrl = Str(tr, "trophyIconUrl"),
                         GroupId = gid,
-                        GroupName = groupName.TryGetValue(gid, out var gn) ? gn : (gid == "default" ? "Base Game" : "DLC"),
+                        GroupName = groupName.TryGetValue(gid, out var gn)
+                            ? gn
+                            : (gid == "default" ? "Base Game" : "DLC"),
                     };
                 }
 
             // 2) This account's earned status + timestamps + rarity — merge onto the definitions by trophy id.
-            string earned = ApiGet($"{ApiBase}/users/me/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}", token);
+            string earned = ApiGet(
+                $"{ApiBase}/users/me/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}",
+                token
+            );
             using (var doc = JsonDocument.Parse(earned))
                 foreach (var tr in doc.RootElement.GetProperty("trophies").EnumerateArray())
                 {
                     int id = Int(tr, "trophyId");
-                    if (!byId.TryGetValue(id, out var d)) continue;
-                    d.Earned = tr.TryGetProperty("earned", out var e) && e.ValueKind == JsonValueKind.True;
+                    if (!byId.TryGetValue(id, out var d))
+                        continue;
+                    d.Earned =
+                        tr.TryGetProperty("earned", out var e) && e.ValueKind == JsonValueKind.True;
                     d.EarnedRate = Dbl(tr, "trophyEarnedRate");
-                    if (d.Earned && tr.TryGetProperty("earnedDateTime", out var dt) && dt.ValueKind == JsonValueKind.String
-                        && DateTime.TryParse(dt.GetString(), null,
-                            System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
-                            out var when))
+                    if (
+                        d.Earned
+                        && tr.TryGetProperty("earnedDateTime", out var dt)
+                        && dt.ValueKind == JsonValueKind.String
+                        && DateTime.TryParse(
+                            dt.GetString(),
+                            null,
+                            System.Globalization.DateTimeStyles.AdjustToUniversal
+                                | System.Globalization.DateTimeStyles.AssumeUniversal,
+                            out var when
+                        )
+                    )
                         d.EarnedUtc = when;
                 }
 
@@ -170,13 +222,23 @@ namespace PS3TrophiesIsPerfect.Services
         /// the refresh fails. Throws <see cref="AuthRequiredException"/> when nothing works (re-prompt needed).</summary>
         private string AccessToken()
         {
-            if (!string.IsNullOrEmpty(_s.PsnAccessToken) && DateTime.UtcNow < _s.PsnAccessExpiryUtc.AddSeconds(-60))
+            if (
+                !string.IsNullOrEmpty(_s.PsnAccessToken)
+                && DateTime.UtcNow < _s.PsnAccessExpiryUtc.AddSeconds(-60)
+            )
                 return _s.PsnAccessToken;
 
             if (!string.IsNullOrEmpty(_s.PsnRefreshToken))
             {
-                try { StoreTokens(RefreshTokens(_s.PsnRefreshToken)); _s.Save(); return _s.PsnAccessToken; }
-                catch { /* refresh token likely expired — fall through to NPSSO */ }
+                try
+                {
+                    StoreTokens(RefreshTokens(_s.PsnRefreshToken));
+                    _s.Save();
+                    return _s.PsnAccessToken;
+                }
+                catch
+                { /* refresh token likely expired — fall through to NPSSO */
+                }
             }
 
             if (!string.IsNullOrEmpty(_s.PsnNpsso))
@@ -187,24 +249,35 @@ namespace PS3TrophiesIsPerfect.Services
                     _s.Save();
                     return _s.PsnAccessToken;
                 }
-                catch { /* NPSSO expired too */ }
+                catch
+                { /* NPSSO expired too */
+                }
             }
 
             throw new AuthRequiredException();
         }
 
-        private sealed class Tokens { public string Access; public string Refresh; public int ExpiresIn; }
+        private sealed class Tokens
+        {
+            public string Access;
+            public string Refresh;
+            public int ExpiresIn;
+        }
 
         private void StoreTokens(Tokens t)
         {
             _s.PsnAccessToken = t.Access;
-            if (!string.IsNullOrEmpty(t.Refresh)) _s.PsnRefreshToken = t.Refresh;
-            _s.PsnAccessExpiryUtc = DateTime.UtcNow.AddSeconds(t.ExpiresIn > 0 ? t.ExpiresIn : 3600);
+            if (!string.IsNullOrEmpty(t.Refresh))
+                _s.PsnRefreshToken = t.Refresh;
+            _s.PsnAccessExpiryUtc = DateTime.UtcNow.AddSeconds(
+                t.ExpiresIn > 0 ? t.ExpiresIn : 3600
+            );
         }
 
         private static string ExchangeNpssoForCode(string npsso)
         {
-            string url = $"{AuthBase}/authorize?access_type=offline&client_id={ClientId}"
+            string url =
+                $"{AuthBase}/authorize?access_type=offline&client_id={ClientId}"
                 + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code"
                 + $"&scope={Uri.EscapeDataString(Scope)}";
 
@@ -213,27 +286,36 @@ namespace PS3TrophiesIsPerfect.Services
             req.UserAgent = UserAgent;
             req.AllowAutoRedirect = false; // the access code lives in the 302 Location header
             req.CookieContainer = new CookieContainer();
-            req.CookieContainer.Add(new Uri("https://ca.account.sony.com"), new Cookie("npsso", npsso));
+            req.CookieContainer.Add(
+                new Uri("https://ca.account.sony.com"),
+                new Cookie("npsso", npsso)
+            );
 
             using (var resp = (HttpWebResponse)req.GetResponse())
             {
                 string location = resp.Headers["Location"];
                 var m = location != null ? Regex.Match(location, "[?&]code=([^&]+)") : Match.Empty;
                 if (!m.Success)
-                    throw new Exception("PSN did not return an access code — the NPSSO token is likely expired or wrong.");
+                    throw new Exception(
+                        "PSN did not return an access code — the NPSSO token is likely expired or wrong."
+                    );
                 return Uri.UnescapeDataString(m.Groups[1].Value);
             }
         }
 
         private static Tokens ExchangeCodeForTokens(string code) =>
-            PostForToken($"code={Uri.EscapeDataString(code)}"
-                + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
-                + "&grant_type=authorization_code&token_format=jwt");
+            PostForToken(
+                $"code={Uri.EscapeDataString(code)}"
+                    + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+                    + "&grant_type=authorization_code&token_format=jwt"
+            );
 
         private static Tokens RefreshTokens(string refreshToken) =>
-            PostForToken($"refresh_token={Uri.EscapeDataString(refreshToken)}"
-                + "&grant_type=refresh_token&token_format=jwt"
-                + $"&scope={Uri.EscapeDataString(Scope)}");
+            PostForToken(
+                $"refresh_token={Uri.EscapeDataString(refreshToken)}"
+                    + "&grant_type=refresh_token&token_format=jwt"
+                    + $"&scope={Uri.EscapeDataString(Scope)}"
+            );
 
         private static Tokens PostForToken(string body)
         {
@@ -243,7 +325,8 @@ namespace PS3TrophiesIsPerfect.Services
             req.ContentType = "application/x-www-form-urlencoded";
             req.Headers["Authorization"] = BasicAuth;
             byte[] payload = Encoding.UTF8.GetBytes(body);
-            using (var s = req.GetRequestStream()) s.Write(payload, 0, payload.Length);
+            using (var s = req.GetRequestStream())
+                s.Write(payload, 0, payload.Length);
 
             using (var resp = (HttpWebResponse)req.GetResponse())
             using (var reader = new StreamReader(resp.GetResponseStream()))
@@ -274,26 +357,42 @@ namespace PS3TrophiesIsPerfect.Services
         // ---- JSON helpers ------------------------------------------------------------------------
 
         private static string Str(JsonElement e, string name) =>
-            e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+            e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
+                ? v.GetString()
+                : null;
 
         private static int Int(JsonElement e, string name) =>
-            e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v)
-                && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
+            e.ValueKind == JsonValueKind.Object
+            && e.TryGetProperty(name, out var v)
+            && v.ValueKind == JsonValueKind.Number
+            && v.TryGetInt32(out var i)
+                ? i
+                : 0;
 
         // trophyEarnedRate comes back as a string like "52.30" (sometimes a number) — accept either.
         private static double Dbl(JsonElement e, string name)
         {
-            if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v)) return 0;
-            if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
-            if (v.ValueKind == JsonValueKind.String
-                && double.TryParse(v.GetString(), System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture, out var s)) return s;
+            if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v))
+                return 0;
+            if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d))
+                return d;
+            if (
+                v.ValueKind == JsonValueKind.String
+                && double.TryParse(
+                    v.GetString(),
+                    System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var s
+                )
+            )
+                return s;
             return 0;
         }
 
         private static int SumTrophies(JsonElement title, string name)
         {
-            if (!title.TryGetProperty(name, out var t)) return 0;
+            if (!title.TryGetProperty(name, out var t))
+                return 0;
             return Int(t, "bronze") + Int(t, "silver") + Int(t, "gold") + Int(t, "platinum");
         }
     }

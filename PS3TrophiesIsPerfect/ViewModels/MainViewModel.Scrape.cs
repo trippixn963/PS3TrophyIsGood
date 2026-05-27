@@ -13,11 +13,15 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private async Task ScrapeAsync()
         {
             string url = await Modern.PromptUrl();
-            if (url == null) return;
+            if (url == null)
+                return;
             if (!PsnProfilesScraper.LooksLikeTrophyUrl(url))
             {
-                await Modern.Info("Enter a PSNProfiles game-trophy URL, e.g.\n" +
-                    "https://psnprofiles.com/trophies/41027-pragmata/SomeUser", "Copy from PSNProfiles");
+                await Modern.Info(
+                    "Enter a PSNProfiles game-trophy URL, e.g.\n"
+                        + "https://psnprofiles.com/trophies/41027-pragmata/SomeUser",
+                    "Copy from PSNProfiles"
+                );
                 return;
             }
 
@@ -39,14 +43,19 @@ namespace PS3TrophiesIsPerfect.ViewModels
             var scraped = result.Trophies;
             if (scraped.Count == 0)
             {
-                await Modern.Info("No earned trophies were found on that page.", "Copy from PSNProfiles");
+                await Modern.Info(
+                    "No earned trophies were found on that page.",
+                    "Copy from PSNProfiles"
+                );
                 return;
             }
 
             // Populate the comparison panel with the donor's own list (their order + times) + identity.
             DonorUser = UserFromUrl(url);
             DonorAvatarUrl = result.AvatarUrl ?? "";
-            var donorEntries = scraped.Select(s => new DonorEntry { Name = s.Name, Date = s.Date }).ToList();
+            var donorEntries = scraped
+                .Select(s => new DonorEntry { Name = s.Name, Date = s.Date })
+                .ToList();
             Settings.Donor = donorEntries;
             Settings.DonorUser = DonorUser;
             Settings.DonorAvatarUrl = DonorAvatarUrl;
@@ -59,10 +68,14 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 const int max = 15;
                 string list = string.Join("\n  • ", unmatched.Take(max));
-                if (unmatched.Count > max) list += $"\n  … and {unmatched.Count - max} more";
+                if (unmatched.Count > max)
+                    list += $"\n  … and {unmatched.Count - max} more";
                 await Modern.Info(
-                    $"Matched {matched} of {matched + unmatched.Count} scraped trophies by name.\n\n" +
-                    "These matched no trophy and were skipped:\n  • " + list, "Copy from PSNProfiles");
+                    $"Matched {matched} of {matched + unmatched.Count} scraped trophies by name.\n\n"
+                        + "These matched no trophy and were skipped:\n  • "
+                        + list,
+                    "Copy from PSNProfiles"
+                );
             }
 
             if (!times.Any(t => t != 0))
@@ -70,12 +83,19 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
             bool relocated = false;
             RelocationResult r = default;
-            if (await Modern.Confirm(
-                    "Rebuild this run as nightly play sessions from a start date through today, finishing " +
-                    "with the platinum earned today?\n\nYes = pick the start date.   No = keep the scraped dates.",
-                    "Relocate to night sessions"))
+            if (
+                await Modern.Confirm(
+                    "Rebuild this run as nightly play sessions from a start date through today, finishing "
+                        + "with the platinum earned today?\n\nYes = pick the start date.   No = keep the scraped dates.",
+                    "Relocate to night sessions"
+                )
+            )
             {
-                DateTime? start = await Modern.PromptDate("Start date — the first night of the run", DateTime.Today, showTime: false);
+                DateTime? start = await Modern.PromptDate(
+                    "Start date — the first night of the run",
+                    DateTime.Today,
+                    showTime: false
+                );
                 if (start != null)
                 {
                     r = _doc.RelocateToNightSessions(times, start.Value.Date);
@@ -88,9 +108,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 _doc.ApplyTimes(times);
                 SetDirty(true);
                 Refresh();
-                ShowToast(relocated
-                    ? $"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today"
-                    : $"Applied {matched} scraped trophies");
+                ShowToast(
+                    relocated
+                        ? $"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today"
+                        : $"Applied {matched} scraped trophies"
+                );
             }
             catch (Exception ex)
             {
@@ -116,8 +138,13 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 return;
             }
 
-            DateTime? start = await Modern.PromptDate("Start date — the first night of the run", DateTime.Today, showTime: false);
-            if (start == null) return;
+            DateTime? start = await Modern.PromptDate(
+                "Start date — the first night of the run",
+                DateTime.Today,
+                showTime: false
+            );
+            if (start == null)
+                return;
 
             var r = _doc.RelocateToNightSessions(times, start.Value.Date);
             try
@@ -125,7 +152,9 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 _doc.ApplyTimes(times);
                 SetDirty(true);
                 Refresh();
-                ShowToast($"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today");
+                ShowToast(
+                    $"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today"
+                );
             }
             catch (Exception ex)
             {
@@ -140,7 +169,10 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 var seg = url.Split('?')[0].TrimEnd('/').Split('/');
                 return seg.Length > 0 ? seg[seg.Length - 1] : "";
             }
-            catch { return ""; }
+            catch
+            {
+                return "";
+            }
         }
     }
 }

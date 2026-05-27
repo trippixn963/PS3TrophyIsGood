@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net48</TargetFramework>
@@ -17,7 +16,6 @@
     <!-- App icon for the .exe (Explorer / taskbar / shortcuts). -->
     <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- pfdtool (decrypt/encrypt) copied next to the exe so the working dir resolves "pfdtool\". -->
     <None Remove="pfdtool\**\*.*" />
@@ -25,16 +23,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-
   <ItemGroup>
     <!-- Modern Fluent (Win10/11) styling for WPF; net48-compatible. -->
     <PackageReference Include="ModernWpfUI" Version="0.9.6" />
     <!-- net48 reference assemblies so this builds under the .NET SDK without VS installed. -->
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference
+      Include="Microsoft.NETFramework.ReferenceAssemblies"
+      Version="1.0.3"
+      PrivateAssets="all"
+    />
     <!-- JSON parsing of the FlareSolverr proxy response. -->
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
-
   <ItemGroup>
     <!-- Trophy-type icons scraped from PSNProfiles; embedded so they load via pack URIs. -->
     <None Remove="Assets\TrophyTypes\*.png" />
@@ -43,7 +43,6 @@
     <None Remove="Assets\logo.png" />
     <Resource Include="Assets\logo.png" />
   </ItemGroup>
-
   <ItemGroup>
     <!-- FROZEN CORE: reference the prebuilt save-data binaries (vendored in engine/) so they are never
          recompiled — and so a fresh clone builds without the net35 TROPHYParser toolchain. -->
@@ -54,5 +53,4 @@
       <HintPath>..\engine\BigEndianTool.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>

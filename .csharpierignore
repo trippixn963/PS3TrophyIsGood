@@ -1,0 +1,9 @@
+# Frozen save-data core — never reformat (darkautism's TROPHYParser + BigEndianTool, and the
+# vendored prebuilt binaries they compile to).
+TROPHYParser/
+BigEndianTool/
+engine/
+
+# Build output / generated code.
+**/obj/
+**/bin/

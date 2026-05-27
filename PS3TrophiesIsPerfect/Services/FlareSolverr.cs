@@ -51,8 +51,14 @@ namespace PS3TrophiesIsPerfect.Services
 
         public static void Stop()
         {
-            try { if (_proc != null && !_proc.HasExited) _proc.Kill(); }
-            catch { /* already gone */ }
+            try
+            {
+                if (_proc != null && !_proc.HasExited)
+                    _proc.Kill();
+            }
+            catch
+            { /* already gone */
+            }
         }
 
         private static bool IsReachable()
@@ -68,7 +74,10 @@ namespace PS3TrophiesIsPerfect.Services
                     return true;
                 }
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

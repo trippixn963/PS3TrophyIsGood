@@ -33,16 +33,20 @@ namespace PS3TrophiesIsPerfect.Services
     public static class PsnProfilesScraper
     {
         public static bool LooksLikeTrophyUrl(string url) =>
-            url != null && Regex.IsMatch(url, "psnprofiles\\.com/trophies/", RegexOptions.IgnoreCase);
+            url != null
+            && Regex.IsMatch(url, "psnprofiles\\.com/trophies/", RegexOptions.IgnoreCase);
 
         /// <summary>Fetches just the avatar URL for a profile page (e.g. https://psnprofiles.com/User).</summary>
-        public static string FetchAvatar(string profileUrl) => ExtractAvatar(FetchViaFlareSolverr(profileUrl.Trim()));
+        public static string FetchAvatar(string profileUrl) =>
+            ExtractAvatar(FetchViaFlareSolverr(profileUrl.Trim()));
 
         private static string ExtractAvatar(string html)
         {
-            var m = Regex.Match(html,
+            var m = Regex.Match(
+                html,
                 "https://i\\.psnprofiles\\.com/avatars/[^\\s\"'<>]+?\\.(?:png|jpg|jpeg|gif)",
-                RegexOptions.IgnoreCase);
+                RegexOptions.IgnoreCase
+            );
             return m.Success ? m.Value : null;
         }
 
@@ -52,16 +56,20 @@ namespace PS3TrophiesIsPerfect.Services
 
             var rowRegex = new Regex(
                 "<tr[^>]*class=\"[^\"]*completed[^\"]*\"[^>]*>(.*?)</tr>",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                RegexOptions.Singleline | RegexOptions.IgnoreCase
+            );
             var nameRegex = new Regex(
                 "<a[^>]*class=\"title\"[^>]*href=\"/trophy/[^\"]*\"[^>]*>(.*?)</a>",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                RegexOptions.Singleline | RegexOptions.IgnoreCase
+            );
             var dateRegex = new Regex(
                 "typo-top-date[^>]*>\\s*<nobr>(.*?)</nobr>",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                RegexOptions.Singleline | RegexOptions.IgnoreCase
+            );
             var timeRegex = new Regex(
                 "typo-bottom-date[^>]*>\\s*<nobr>(.*?)</nobr>",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                RegexOptions.Singleline | RegexOptions.IgnoreCase
+            );
 
             var results = new List<ScrapedTrophy>();
             foreach (Match row in rowRegex.Matches(html))
@@ -77,7 +85,10 @@ namespace PS3TrophiesIsPerfect.Services
                 string dateText = RemoveDayOrdinal(StripHtml(dm.Groups[1].Value));
                 string timeText = StripHtml(tm.Groups[1].Value);
 
-                if (string.IsNullOrWhiteSpace(name) || !TryParsePsnUnlock(dateText, timeText, out long unix))
+                if (
+                    string.IsNullOrWhiteSpace(name)
+                    || !TryParsePsnUnlock(dateText, timeText, out long unix)
+                )
                     continue;
 
                 results.Add(new ScrapedTrophy(unix, name));
@@ -101,7 +112,9 @@ namespace PS3TrophiesIsPerfect.Services
                     client.Headers.Add("Content-Type", "application/json");
                     client.Encoding = System.Text.Encoding.UTF8;
                     string response = client.UploadString("http://localhost:8191/v1", jsonPayload);
-                    var sol = System.Text.Json.JsonDocument.Parse(response).RootElement.GetProperty("solution");
+                    var sol = System
+                        .Text.Json.JsonDocument.Parse(response)
+                        .RootElement.GetProperty("solution");
                     return sol.GetProperty("response").GetString();
                 }
             }
@@ -109,7 +122,8 @@ namespace PS3TrophiesIsPerfect.Services
             {
                 throw new Exception(
                     "FlareSolverr isn't reachable on localhost:8191 (needed to get past PSNProfiles' "
-                        + "Cloudflare). Start FlareSolverr and try again.");
+                        + "Cloudflare). Start FlareSolverr and try again."
+                );
             }
         }
 
@@ -127,14 +141,18 @@ namespace PS3TrophiesIsPerfect.Services
         {
             unix = 0;
             string[] formats = { "d MMM yyyy h:mm:ss tt", "d MMM yyyy h:mm tt" };
-            if (DateTime.TryParseExact(
+            if (
+                DateTime.TryParseExact(
                     (dateText + " " + timeText).Trim(),
                     formats,
                     System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None,
-                    out DateTime dt))
+                    out DateTime dt
+                )
+            )
             {
-                unix = (long)(dt - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+                unix = (long)
+                    (dt - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
                 return true;
             }
             return false;
