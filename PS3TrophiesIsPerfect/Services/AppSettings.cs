@@ -22,8 +22,12 @@ namespace PS3TrophiesIsPerfect.Services
         public double WinTop { get; set; } = double.NaN;
         public bool WinMaximized { get; set; }
 
-        /// <summary>The last cloned-from list, for the side-by-side comparison panel.</summary>
+        /// <summary>The last cloned-from list + identities, for the comparison panel.</summary>
         public string DonorTitle { get; set; } = "";
+        public string DonorUser { get; set; } = "";
+        public string DonorAvatarUrl { get; set; } = "";
+        public string MyPsnUser { get; set; } = "";
+        public string MyAvatarUrl { get; set; } = "";
         public System.Collections.Generic.List<DonorEntry> Donor { get; set; } = new System.Collections.Generic.List<DonorEntry>();
 
         private static string Dir =>

@@ -18,6 +18,13 @@ namespace PS3TrophiesIsPerfect.Services
         }
     }
 
+    /// <summary>The earned trophies plus the profile owner's avatar URL.</summary>
+    public sealed class ScrapeResult
+    {
+        public List<ScrapedTrophy> Trophies { get; set; } = new List<ScrapedTrophy>();
+        public string AvatarUrl { get; set; }
+    }
+
     /// <summary>
     /// Scrapes a PSNProfiles user game-trophy page through the local FlareSolverr proxy (PSNProfiles
     /// sits behind Cloudflare). Returns the earned trophies as name-keyed entries carrying the real
@@ -28,7 +35,18 @@ namespace PS3TrophiesIsPerfect.Services
         public static bool LooksLikeTrophyUrl(string url) =>
             url != null && Regex.IsMatch(url, "psnprofiles\\.com/trophies/", RegexOptions.IgnoreCase);
 
-        public static List<ScrapedTrophy> Load(string url)
+        /// <summary>Fetches just the avatar URL for a profile page (e.g. https://psnprofiles.com/User).</summary>
+        public static string FetchAvatar(string profileUrl) => ExtractAvatar(FetchViaFlareSolverr(profileUrl.Trim()));
+
+        private static string ExtractAvatar(string html)
+        {
+            var m = Regex.Match(html,
+                "https://i\\.psnprofiles\\.com/avatars/[^\\s\"'<>]+?\\.(?:png|jpg|jpeg|gif)",
+                RegexOptions.IgnoreCase);
+            return m.Success ? m.Value : null;
+        }
+
+        public static ScrapeResult Load(string url)
         {
             string html = FetchViaFlareSolverr(url.Trim());
 
@@ -64,7 +82,7 @@ namespace PS3TrophiesIsPerfect.Services
 
                 results.Add(new ScrapedTrophy(unix, name));
             }
-            return results;
+            return new ScrapeResult { Trophies = results, AvatarUrl = ExtractAvatar(html) };
         }
 
         private static string FetchViaFlareSolverr(string targetUrl)

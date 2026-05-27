@@ -54,34 +54,40 @@ namespace PS3TrophiesIsPerfect.Dialogs
                  : SaveChoice.Cancel;
         }
 
-        public static async Task<string> PromptUrl(string initial = "")
+        public static Task<string> PromptUrl(string initial = "") =>
+            PromptText("Copy from PSNProfiles", "PSNProfiles game-trophy URL",
+                "e.g. https://psnprofiles.com/trophies/41027-pragmata/SomeUser",
+                "https://psnprofiles.com/trophies/…", "Scrape", initial);
+
+        public static async Task<string> PromptText(string title, string label, string hint, string placeholder, string okText, string initial = "")
         {
             var box = new TextBox { Text = initial ?? string.Empty };
-            ControlHelper.SetPlaceholderText(box, "https://psnprofiles.com/trophies/…");
+            ControlHelper.SetPlaceholderText(box, placeholder);
             box.Loaded += (s, e) => { box.Focus(); box.SelectAll(); };
 
             var panel = new StackPanel();
             panel.Children.Add(new TextBlock
             {
-                Text = "PSNProfiles game-trophy URL",
+                Text = label,
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 6),
             });
-            panel.Children.Add(new TextBlock
-            {
-                Text = "e.g. https://psnprofiles.com/trophies/41027-pragmata/SomeUser",
-                Opacity = 0.6,
-                FontSize = 12,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 12),
-            });
+            if (!string.IsNullOrEmpty(hint))
+                panel.Children.Add(new TextBlock
+                {
+                    Text = hint,
+                    Opacity = 0.6,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 12),
+                });
             panel.Children.Add(box);
 
             var r = await new ContentDialog
             {
-                Title = "Copy from PSNProfiles",
+                Title = title,
                 Content = panel,
-                PrimaryButtonText = "Scrape",
+                PrimaryButtonText = okText,
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
             }.ShowAsync();

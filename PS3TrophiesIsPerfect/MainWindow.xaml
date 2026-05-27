@@ -245,7 +245,7 @@
                 </TabItem>
 
                 <!-- Donor comparison -->
-                <TabItem Header="{Binding DonorTitle}" Visibility="{Binding HasDonor, Converter={StaticResource B2V}}">
+                <TabItem Header="Comparison" Visibility="{Binding HasDonor, Converter={StaticResource B2V}}">
                     <Grid Margin="0,8,0,0">
                         <Border CornerRadius="12" Background="{StaticResource Card}"
                                 BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
@@ -254,15 +254,56 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
-                                <DockPanel Grid.Row="0" Margin="14,10,10,2">
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0"
-                                            Command="{Binding ClearDonorCommand}" ToolTip="Clear the comparison">
-                                        <ui:FontIcon Glyph="&#xE711;" FontSize="13" />
-                                    </Button>
-                                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="12"
-                                               Foreground="{StaticResource TextMuted}"
-                                               Text="Times differ (relocated) — compare order &amp; gaps:  ✓ exact   +slower (intended)   ⚠ faster" />
-                                </DockPanel>
+                                <StackPanel Grid.Row="0" Margin="14,10,12,6">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0"
+                                                Command="{Binding ClearDonorCommand}" ToolTip="Clear the comparison">
+                                            <ui:FontIcon Glyph="&#xE711;" FontSize="13" />
+                                        </Button>
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                            <!-- Donor identity -->
+                                            <Grid Width="26" Height="26" Margin="0,0,8,0">
+                                                <Ellipse Fill="#222222" />
+                                                <Ellipse>
+                                                    <Ellipse.Fill>
+                                                        <ImageBrush ImageSource="{Binding DonorAvatarUrl}" Stretch="UniformToFill" />
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                            </Grid>
+                                            <TextBlock Text="{Binding DonorUser}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <TextBlock Text="vs" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="12,0,12,0" />
+                                            <!-- Your identity -->
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding HasMyUser, Converter={StaticResource B2V}}">
+                                                <Grid Width="26" Height="26" Margin="0,0,8,0">
+                                                    <Ellipse Fill="#222222" />
+                                                    <Ellipse>
+                                                        <Ellipse.Fill>
+                                                            <ImageBrush ImageSource="{Binding MyAvatarUrl}" Stretch="UniformToFill" />
+                                                        </Ellipse.Fill>
+                                                    </Ellipse>
+                                                </Grid>
+                                                <TextBlock Text="{Binding MyUserDisplay}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button Style="{StaticResource ToolButton}" Margin="6,0,0,0" Padding="6,2"
+                                                        Command="{Binding SetMyUserCommand}" ToolTip="Change your PSN username">
+                                                    <ui:FontIcon Glyph="&#xE70F;" FontSize="11" />
+                                                </Button>
+                                            </StackPanel>
+                                            <Button Visibility="{Binding NoMyUser, Converter={StaticResource B2V}}"
+                                                    Command="{Binding SetMyUserCommand}" Padding="10,4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:FontIcon Glyph="&#xE77B;" FontSize="13" Margin="0,0,6,0" />
+                                                    <TextBlock Text="Set your PSN username" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding VerdictText}" Foreground="{Binding VerdictBrush}"
+                                                   FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                        <TextBlock Margin="14,0,0,0" Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center"
+                                                   Text="✓ exact gap   +slower (intended)   ⚠ faster (shouldn't happen)" />
+                                    </DockPanel>
+                                </StackPanel>
                                 <DataGrid Grid.Row="1" Style="{StaticResource ListGrid}" ItemsSource="{Binding Comparison}">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" />

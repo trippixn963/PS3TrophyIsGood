@@ -43,6 +43,36 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private int _selectedTab;
         public int SelectedTab { get => _selectedTab; set => Set(ref _selectedTab, value); }
 
+        private string _donorUser = "";
+        public string DonorUser { get => _donorUser; set => Set(ref _donorUser, value); }
+
+        private string _donorAvatarUrl = "";
+        public string DonorAvatarUrl { get => _donorAvatarUrl; set => Set(ref _donorAvatarUrl, value); }
+
+        private string _myPsnUser = "";
+        public string MyPsnUser { get => _myPsnUser; set { Set(ref _myPsnUser, value); Raise(nameof(HasMyUser)); Raise(nameof(NoMyUser)); Raise(nameof(MyUserDisplay)); } }
+        public bool HasMyUser => !string.IsNullOrWhiteSpace(_myPsnUser);
+        public bool NoMyUser => !HasMyUser;
+        public string MyUserDisplay => HasMyUser ? _myPsnUser : "You";
+
+        private string _myAvatarUrl = "";
+        public string MyAvatarUrl { get => _myAvatarUrl; set => Set(ref _myAvatarUrl, value); }
+
+        private string _verdictText = "";
+        public string VerdictText { get => _verdictText; set => Set(ref _verdictText, value); }
+
+        private System.Windows.Media.Brush _verdictBrush = GreenBrush;
+        public System.Windows.Media.Brush VerdictBrush { get => _verdictBrush; set => Set(ref _verdictBrush, value); }
+
+        private static readonly System.Windows.Media.Brush GreenBrush = FrozenBrush(0x3F, 0xB9, 0x50);
+        private static readonly System.Windows.Media.Brush RedBrush = FrozenBrush(0xF8, 0x51, 0x49);
+        private static System.Windows.Media.Brush FrozenBrush(byte r, byte g, byte b)
+        {
+            var br = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+            br.Freeze();
+            return br;
+        }
+
         private string _selectedProfile = TrophyDocument.DefaultProfile;
         public string SelectedProfile
         {
@@ -82,6 +112,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ICommand ScrapeCommand { get; }
         public ICommand ClearCommand { get; }
         public ICommand ClearDonorCommand { get; }
+        public ICommand SetMyUserCommand { get; }
 
         public MainViewModel()
         {
@@ -91,17 +122,45 @@ namespace PS3TrophiesIsPerfect.ViewModels
             ScrapeCommand = new RelayCommand(async () => await ScrapeAsync(), () => _doc.IsOpen && !IsBusy);
             ClearCommand = new RelayCommand(async () => await ClearAllAsync(), () => _doc.IsOpen && !IsBusy);
             ClearDonorCommand = new RelayCommand(ClearDonor);
+            SetMyUserCommand = new RelayCommand(async () => await SetMyUserAsync(), () => !IsBusy);
         }
 
         /// <summary>Called once the window is loaded: start FlareSolverr and reopen the last folder.</summary>
         public async Task StartupAsync()
         {
             _ = Task.Run(() => FlareSolverr.EnsureStarted());
+            MyPsnUser = Settings.MyPsnUser ?? "";
+            MyAvatarUrl = Settings.MyAvatarUrl ?? "";
             LoadProfiles();
             if (!string.IsNullOrEmpty(Settings.LastFolder) && Directory.Exists(Settings.LastFolder))
                 await OpenPath(Settings.LastFolder);
             if (Settings.Donor != null && Settings.Donor.Count > 0)
+            {
+                DonorUser = Settings.DonorUser ?? "";
+                DonorAvatarUrl = Settings.DonorAvatarUrl ?? "";
                 ShowDonor(Settings.Donor, Settings.DonorTitle);
+            }
+        }
+
+        private async Task SetMyUserAsync()
+        {
+            string user = await Modern.PromptText("Your PSNProfiles account", "PSNProfiles username",
+                "Your avatar and name will show on the comparison.", "e.g. LATKYA", "Save", MyPsnUser);
+            if (string.IsNullOrWhiteSpace(user)) return;
+            user = user.Trim();
+
+            string avatar = null;
+            IsBusy = true;
+            BusyText = "Fetching your PSNProfiles avatar…";
+            try { avatar = await Task.Run(() => PsnProfilesScraper.FetchAvatar("https://psnprofiles.com/" + user)); }
+            catch { /* leave avatar null */ }
+            IsBusy = false;
+
+            MyPsnUser = user;
+            MyAvatarUrl = avatar ?? "";
+            Settings.MyPsnUser = MyPsnUser;
+            Settings.MyAvatarUrl = MyAvatarUrl;
+            Settings.Save();
         }
 
         // --- donor comparison panel ---
@@ -117,9 +176,17 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private void RebuildComparison()
         {
             Comparison.Clear();
-            if (!HasDonor) return;
-            foreach (var r in _doc.BuildComparison(_donor))
-                Comparison.Add(r);
+            int exact = 0, slower = 0, faster = 0;
+            if (HasDonor)
+                foreach (var r in _doc.BuildComparison(_donor))
+                {
+                    Comparison.Add(r);
+                    if (r.Match == "exact") exact++;
+                    else if (r.Match == "slower") slower++;
+                    else if (r.Match == "faster") faster++;
+                }
+            VerdictText = HasDonor ? $"{exact} exact · {slower} slower · {faster} faster" : "";
+            VerdictBrush = faster > 0 ? RedBrush : GreenBrush;
         }
 
         private void ClearDonor()
@@ -128,21 +195,24 @@ namespace PS3TrophiesIsPerfect.ViewModels
             Comparison.Clear();
             HasDonor = false;
             DonorTitle = "";
+            DonorUser = "";
+            DonorAvatarUrl = "";
             SelectedTab = 0;
             Settings.Donor = new List<DonorEntry>();
             Settings.DonorTitle = "";
+            Settings.DonorUser = "";
+            Settings.DonorAvatarUrl = "";
             Settings.Save();
         }
 
-        private static string DonorTitleFromUrl(string url)
+        private static string UserFromUrl(string url)
         {
             try
             {
                 var seg = url.Split('?')[0].TrimEnd('/').Split('/');
-                string user = seg.Length > 0 ? seg[seg.Length - 1] : "";
-                return string.IsNullOrEmpty(user) ? "Cloned from PSNProfiles" : "Cloned from " + user;
+                return seg.Length > 0 ? seg[seg.Length - 1] : "";
             }
-            catch { return "Cloned from PSNProfiles"; }
+            catch { return ""; }
         }
 
         private void LoadProfiles()
@@ -294,12 +364,12 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 return;
             }
 
-            List<ScrapedTrophy> scraped;
+            ScrapeResult result;
             IsBusy = true;
             BusyText = "Scraping PSNProfiles… this can take up to a minute.";
             try
             {
-                scraped = await Task.Run(() => PsnProfilesScraper.Load(url));
+                result = await Task.Run(() => PsnProfilesScraper.Load(url));
             }
             catch (Exception ex)
             {
@@ -309,16 +379,21 @@ namespace PS3TrophiesIsPerfect.ViewModels
             }
             IsBusy = false;
 
+            var scraped = result.Trophies;
             if (scraped.Count == 0)
             {
                 await Modern.Info("No earned trophies were found on that page.", "Copy from PSNProfiles");
                 return;
             }
 
-            // Populate the side-by-side comparison panel with the donor's own list (their order + times).
+            // Populate the comparison panel with the donor's own list (their order + times) + identity.
+            DonorUser = UserFromUrl(url);
+            DonorAvatarUrl = result.AvatarUrl ?? "";
             var donorEntries = scraped.Select(s => new DonorEntry { Name = s.Name, Date = s.Date }).ToList();
             Settings.Donor = donorEntries;
-            Settings.DonorTitle = DonorTitleFromUrl(url);
+            Settings.DonorUser = DonorUser;
+            Settings.DonorAvatarUrl = DonorAvatarUrl;
+            Settings.DonorTitle = "Cloned from " + DonorUser;
             Settings.Save();
             ShowDonor(donorEntries, Settings.DonorTitle);
 
