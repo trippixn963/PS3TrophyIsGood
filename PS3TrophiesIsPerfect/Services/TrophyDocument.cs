@@ -174,6 +174,49 @@ namespace PS3TrophiesIsPerfect.Services
             return rows;
         }
 
+        /// <summary>
+        /// Builds the donor (cloned-from) rows for the comparison panel: sorted by the donor's own unlock
+        /// time, with order #, elapsed/gap, and — where the name matches a trophy in the loaded game — the
+        /// real artwork and type. Independent of the local unlock state (these are the donor's originals).
+        /// </summary>
+        public List<TrophyRow> BuildDonorRows(IReadOnlyList<DonorEntry> donor)
+        {
+            var local = new Dictionary<string, KeyValuePair<string, int>>(StringComparer.Ordinal); // name -> (typeLetter, tropId)
+            if (_tconf != null)
+                for (int i = 0; i < _tconf.Count; i++)
+                {
+                    string key = NormalizeTrophyName(_tconf[i].name);
+                    if (key.Length > 0 && !local.ContainsKey(key))
+                        local[key] = new KeyValuePair<string, int>(TypeLetter(_tconf[i].ttype), _tconf[i].id);
+                }
+
+            var sorted = donor.Where(d => d != null && d.Date != 0).OrderBy(d => d.Date).ToList();
+            var rows = new List<TrophyRow>();
+            DateTime first = default, prev = default;
+            for (int k = 0; k < sorted.Count; k++)
+            {
+                DateTime dt = sorted[k].Date.TimeStampToDateTime();
+                if (k == 0) first = dt;
+                string elapsed = k == 0 ? string.Empty
+                    : k == 1 ? FormatSpan(dt - first)
+                    : FormatSpan(dt - first) + " (+" + FormatSpan(dt - prev) + ")";
+
+                bool matched = local.TryGetValue(NormalizeTrophyName(sorted[k].Name), out var info);
+                rows.Add(new TrophyRow
+                {
+                    Order = k + 1,
+                    Name = sorted[k].Name,
+                    Type = matched ? info.Key : string.Empty,
+                    Got = true,
+                    Time = dt,
+                    Elapsed = elapsed,
+                    Icon = matched ? LoadIcon(info.Value) : null,
+                });
+                prev = dt;
+            }
+            return rows;
+        }
+
         /// <summary>Normalises the parser's ttype ("P"/"G"/"S"/"B" or longer) to a single letter.</summary>
         private static string TypeLetter(string ttype)
         {

@@ -30,6 +30,15 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ObservableCollection<TrophyRow> Trophies { get; } = new ObservableCollection<TrophyRow>();
         public ObservableCollection<string> Profiles { get; } = new ObservableCollection<string>();
 
+        // --- donor (cloned-from) comparison panel ---
+        public ObservableCollection<TrophyRow> DonorTrophies { get; } = new ObservableCollection<TrophyRow>();
+
+        private bool _hasDonor;
+        public bool HasDonor { get => _hasDonor; set => Set(ref _hasDonor, value); }
+
+        private string _donorTitle = "";
+        public string DonorTitle { get => _donorTitle; set => Set(ref _donorTitle, value); }
+
         private string _selectedProfile = TrophyDocument.DefaultProfile;
         public string SelectedProfile
         {
@@ -68,6 +77,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ICommand RefreshCommand { get; }
         public ICommand ScrapeCommand { get; }
         public ICommand ClearCommand { get; }
+        public ICommand ClearDonorCommand { get; }
 
         public MainViewModel()
         {
@@ -76,6 +86,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             RefreshCommand = new RelayCommand(Refresh, () => _doc.IsOpen && !IsBusy);
             ScrapeCommand = new RelayCommand(async () => await ScrapeAsync(), () => _doc.IsOpen && !IsBusy);
             ClearCommand = new RelayCommand(async () => await ClearAllAsync(), () => _doc.IsOpen && !IsBusy);
+            ClearDonorCommand = new RelayCommand(ClearDonor);
         }
 
         /// <summary>Called once the window is loaded: start FlareSolverr and reopen the last folder.</summary>
@@ -85,6 +96,39 @@ namespace PS3TrophiesIsPerfect.ViewModels
             LoadProfiles();
             if (!string.IsNullOrEmpty(Settings.LastFolder) && Directory.Exists(Settings.LastFolder))
                 await OpenPath(Settings.LastFolder);
+            if (Settings.Donor != null && Settings.Donor.Count > 0)
+                ShowDonor(Settings.Donor, Settings.DonorTitle);
+        }
+
+        // --- donor comparison panel ---
+        private void ShowDonor(List<DonorEntry> entries, string title)
+        {
+            DonorTrophies.Clear();
+            foreach (var r in _doc.BuildDonorRows(entries))
+                DonorTrophies.Add(r);
+            DonorTitle = string.IsNullOrEmpty(title) ? "Cloned from PSNProfiles" : title;
+            HasDonor = DonorTrophies.Count > 0;
+        }
+
+        private void ClearDonor()
+        {
+            DonorTrophies.Clear();
+            HasDonor = false;
+            DonorTitle = "";
+            Settings.Donor = new List<DonorEntry>();
+            Settings.DonorTitle = "";
+            Settings.Save();
+        }
+
+        private static string DonorTitleFromUrl(string url)
+        {
+            try
+            {
+                var seg = url.Split('?')[0].TrimEnd('/').Split('/');
+                string user = seg.Length > 0 ? seg[seg.Length - 1] : "";
+                return string.IsNullOrEmpty(user) ? "Cloned from PSNProfiles" : "Cloned from " + user;
+            }
+            catch { return "Cloned from PSNProfiles"; }
         }
 
         private void LoadProfiles()
@@ -255,6 +299,13 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 await Modern.Info("No earned trophies were found on that page.", "Copy from PSNProfiles");
                 return;
             }
+
+            // Populate the side-by-side comparison panel with the donor's own list (their order + times).
+            var donorEntries = scraped.Select(s => new DonorEntry { Name = s.Name, Date = s.Date }).ToList();
+            Settings.Donor = donorEntries;
+            Settings.DonorTitle = DonorTitleFromUrl(url);
+            Settings.Save();
+            ShowDonor(donorEntries, Settings.DonorTitle);
 
             long[] times = _doc.MatchScrape(scraped, out int matched, out List<string> unmatched);
             if (unmatched.Count > 0)

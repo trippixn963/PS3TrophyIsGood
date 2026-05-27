@@ -10,6 +10,9 @@ namespace PS3TrophiesIsPerfect.Models
         /// <summary>Trophy id == index in the parser tables (Platinum = 0).</summary>
         public int Id { get; set; }
 
+        /// <summary>Unlock-order position (1-based); used by the donor-comparison panel's "#" column.</summary>
+        public int Order { get; set; }
+
         public string Name { get; set; }
         public string Detail { get; set; }
 

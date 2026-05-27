@@ -4,6 +4,13 @@ using System.Text.Json;
 
 namespace PS3TrophiesIsPerfect.Services
 {
+    /// <summary>One donor (cloned-from) trophy: display name + unlock time (Unix seconds).</summary>
+    public sealed class DonorEntry
+    {
+        public string Name { get; set; }
+        public long Date { get; set; }
+    }
+
     /// <summary>Small JSON-backed user settings stored in %AppData%\PS3TrophiesIsPerfect\settings.json.</summary>
     public sealed class AppSettings
     {
@@ -14,6 +21,10 @@ namespace PS3TrophiesIsPerfect.Services
         public double WinLeft { get; set; } = double.NaN;
         public double WinTop { get; set; } = double.NaN;
         public bool WinMaximized { get; set; }
+
+        /// <summary>The last cloned-from list, for the side-by-side comparison panel.</summary>
+        public string DonorTitle { get; set; } = "";
+        public System.Collections.Generic.List<DonorEntry> Donor { get; set; } = new System.Collections.Generic.List<DonorEntry>();
 
         private static string Dir =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PS3TrophiesIsPerfect");

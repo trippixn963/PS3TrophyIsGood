@@ -4,9 +4,10 @@
         xmlns:ui="http://schemas.modernwpf.com/2019"
         xmlns:vm="clr-namespace:PS3TrophiesIsPerfect.ViewModels"
         xmlns:controls="clr-namespace:PS3TrophiesIsPerfect.Controls"
+        xmlns:infra="clr-namespace:PS3TrophiesIsPerfect.Infra"
         ui:WindowHelper.UseModernWindowStyle="True"
         Title="{Binding WindowTitle}"
-        Width="1120" Height="740" MinWidth="860" MinHeight="560"
+        Width="1200" Height="760" MinWidth="900" MinHeight="560"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         PreviewKeyDown="Window_PreviewKeyDown"
         Background="{StaticResource Surface}"
@@ -25,11 +26,26 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="B2V" />
+        <infra:DonorWidthConverter x:Key="DonorWidth" />
         <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="Margin" Value="0,0,4,0" />
+        </Style>
+        <!-- Shared look for both trophy grids. -->
+        <Style x:Key="ListGrid" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="RowBackground" Value="Transparent" />
+            <Setter Property="GridLinesVisibility" Value="None" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="CanUserResizeRows" Value="False" />
+            <Setter Property="SelectionMode" Value="Single" />
+            <Setter Property="RowHeight" Value="52" />
+            <Setter Property="Margin" Value="6" />
         </Style>
     </Window.Resources>
 
@@ -118,80 +134,137 @@
             </Grid>
         </Border>
 
-        <!-- Trophy list (+ empty / busy overlays) -->
+        <!-- Lists: mine (left) + donor comparison (right) -->
         <Grid Grid.Row="2" Margin="16,8,16,16">
-            <Border CornerRadius="12" Background="{StaticResource Card}"
-                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
-                <DataGrid x:Name="Grid" ItemsSource="{Binding Trophies}" AutoGenerateColumns="False" IsReadOnly="True"
-                          Background="Transparent" BorderThickness="0" RowBackground="Transparent"
-                          GridLinesVisibility="None" HeadersVisibility="Column" CanUserResizeRows="False"
-                          SelectionMode="Single" RowHeight="52" Margin="6"
-                          MouseDoubleClick="Grid_DoubleClick" PreviewMouseRightButtonDown="Grid_RightDown">
-                    <DataGrid.RowStyle>
-                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Got}" Value="False">
-                                    <Setter Property="Opacity" Value="0.4" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Synced}" Value="True">
-                                    <Setter Property="Background" Value="#3A2026" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGrid.RowStyle>
-                    <DataGrid.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Set / change time…" Click="Ctx_Edit" />
-                            <MenuItem Header="Lock (remove unlock)" Click="Ctx_Lock" />
-                        </ContextMenu>
-                    </DataGrid.ContextMenu>
-                    <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Trophy" Width="*" MinWidth="260" SortMemberPath="Name">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                        <Image Source="{Binding Display}" Width="34" Height="34" Margin="0,0,12,0"
-                                               RenderOptions.BitmapScalingMode="HighQuality" />
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Detail}" FontSize="12"
-                                                       Foreground="{StaticResource TextMuted}" />
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="{Binding HasDonor, Converter={StaticResource DonorWidth}}" />
+            </Grid.ColumnDefinitions>
+
+            <!-- My list -->
+            <Grid Grid.Column="0">
+                <Border CornerRadius="12" Background="{StaticResource Card}"
+                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                    <DataGrid x:Name="Grid" Style="{StaticResource ListGrid}" ItemsSource="{Binding Trophies}"
+                              MouseDoubleClick="Grid_DoubleClick" PreviewMouseRightButtonDown="Grid_RightDown">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Got}" Value="False">
+                                        <Setter Property="Opacity" Value="0.4" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Synced}" Value="True">
+                                        <Setter Property="Background" Value="#3A2026" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Set / change time…" Click="Ctx_Edit" />
+                                <MenuItem Header="Lock (remove unlock)" Click="Ctx_Lock" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Trophy" Width="*" MinWidth="220" SortMemberPath="Name">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
+                                            <Image Source="{Binding Display}" Width="34" Height="34" Margin="0,0,12,0"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Detail}" FontSize="12"
+                                                           Foreground="{StaticResource TextMuted}" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Type" Width="56" SortMemberPath="Type">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Source="{Binding TypeBadge}" Width="26" Height="26"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Got" Binding="{Binding GotText}" Width="60" />
+                            <DataGridTextColumn Header="Synced" Binding="{Binding SyncedText}" Width="70" />
+                            <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="160" />
+                            <DataGridTextColumn Header="Elapsed (+gap)" Binding="{Binding Elapsed}" Width="160" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
 
-                        <DataGridTemplateColumn Header="Type" Width="64" SortMemberPath="Type">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Image Source="{Binding TypeBadge}" Width="26" Height="26"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           RenderOptions.BitmapScalingMode="HighQuality" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                <!-- Empty state (over the left list only) -->
+                <Border CornerRadius="12" Background="{StaticResource Card}"
+                        Visibility="{Binding EmptyHintVisible, Converter={StaticResource B2V}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ui:FontIcon Glyph="&#xE8E5;" FontSize="40" Foreground="{StaticResource TextMuted}" />
+                        <TextBlock Text="Open a trophy folder, or drag one here" Margin="0,14,0,0"
+                                   Foreground="{StaticResource TextMuted}" FontSize="14" />
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-                        <DataGridTextColumn Header="Got" Binding="{Binding GotText}" Width="70" />
-                        <DataGridTextColumn Header="Synced" Binding="{Binding SyncedText}" Width="80" />
-                        <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="170" />
-                        <DataGridTextColumn Header="Elapsed (+gap)" Binding="{Binding Elapsed}" Width="180" />
-                    </DataGrid.Columns>
-                </DataGrid>
+            <GridSplitter Grid.Column="1" Width="10" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="Transparent" Visibility="{Binding HasDonor, Converter={StaticResource B2V}}" />
+
+            <!-- Donor (cloned-from) comparison -->
+            <Border Grid.Column="2" CornerRadius="12" Background="{StaticResource Card}"
+                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    Visibility="{Binding HasDonor, Converter={StaticResource B2V}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Grid.Row="0" Margin="14,10,8,4">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0"
+                                Command="{Binding ClearDonorCommand}" ToolTip="Hide the comparison">
+                            <ui:FontIcon Glyph="&#xE711;" FontSize="13" />
+                        </Button>
+                        <ui:FontIcon DockPanel.Dock="Left" Glyph="&#xE896;" FontSize="15"
+                                     Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DonorTitle}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                    </DockPanel>
+                    <DataGrid Grid.Row="1" Style="{StaticResource ListGrid}" ItemsSource="{Binding DonorTrophies}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" />
+                            <DataGridTemplateColumn Header="Trophy" Width="*" MinWidth="180" SortMemberPath="Order">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
+                                            <Image Source="{Binding Display}" Width="30" Height="30" Margin="0,0,10,0"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Type" Width="50">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Source="{Binding TypeBadge}" Width="24" Height="24"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="150" />
+                            <DataGridTextColumn Header="Elapsed (+gap)" Binding="{Binding Elapsed}" Width="160" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
             </Border>
 
-            <!-- Empty state -->
-            <Border CornerRadius="12" Background="{StaticResource Card}"
-                    Visibility="{Binding EmptyHintVisible, Converter={StaticResource B2V}}">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <ui:FontIcon Glyph="&#xE8E5;" FontSize="40" Foreground="{StaticResource TextMuted}" />
-                    <TextBlock Text="Open a trophy folder, or drag one here" Margin="0,14,0,0"
-                               Foreground="{StaticResource TextMuted}" FontSize="14" />
-                </StackPanel>
-            </Border>
-
-            <!-- Busy overlay -->
-            <Border Background="#C00D0D0D" CornerRadius="12"
+            <!-- Busy overlay over everything -->
+            <Border Grid.ColumnSpan="3" Background="#C00D0D0D" CornerRadius="12"
                     Visibility="{Binding IsBusy, Converter={StaticResource B2V}}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <ui:ProgressRing IsActive="{Binding IsBusy}" Width="48" Height="48" />
