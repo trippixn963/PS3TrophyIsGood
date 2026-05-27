@@ -28,7 +28,7 @@ namespace PS3TrophiesIsPerfect.Services
     /// <summary>
     /// Scrapes a PSNProfiles user game-trophy page through the local FlareSolverr proxy (PSNProfiles
     /// sits behind Cloudflare). Returns the earned trophies as name-keyed entries carrying the real
-    /// unlock time. Ported from the WinForms CopyFrom dialog.
+    /// unlock time.
     /// </summary>
     public static class PsnProfilesScraper
     {

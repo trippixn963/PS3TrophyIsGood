@@ -7,9 +7,8 @@ using System.Threading;
 namespace PS3TrophiesIsPerfect.Services
 {
     /// <summary>
-    /// Helpers for decrypting/encrypting PS3 trophy data via pfdtool and for copying trophy files in
-    /// and out of a temporary working directory. Ported verbatim from the WinForms app — this is
-    /// app-layer plumbing, not part of the frozen TROPHYParser core.
+    /// App-layer plumbing: decrypts/encrypts PS3 trophy data via the bundled <c>pfdtool</c> and copies
+    /// trophy files in and out of a temporary working copy. Not part of the frozen TROPHYParser core.
     /// </summary>
     public static class Utility
     {

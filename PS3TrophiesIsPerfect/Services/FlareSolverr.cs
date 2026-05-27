@@ -6,8 +6,7 @@ namespace PS3TrophiesIsPerfect.Services
 {
     /// <summary>
     /// Launches the bundled FlareSolverr proxy (needed for the Cloudflare-protected PSNProfiles scrape).
-    /// No-ops gracefully if it's already running externally or the binary isn't present. Ported from the
-    /// WinForms app's StartFlareSolverr.
+    /// No-ops gracefully if it's already running externally or the binary isn't present.
     /// </summary>
     public static class FlareSolverr
     {

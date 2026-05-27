@@ -9,8 +9,8 @@ namespace PS3TrophiesIsPerfect.Services
 {
     /// <summary>
     /// Wraps the frozen TROPHYParser core (TROPCONF/TROPTRNS/TROPUSR) for one open trophy folder:
-    /// load, edit, save, plus the PSNProfiles name-match and the night-session relocation. All the
-    /// behavioural logic is ported from the WinForms MainAPP so the proven rules carry over unchanged.
+    /// load, edit, save, plus the PSNProfiles name-match and the night-session relocation. This is the
+    /// reviewable app-layer boundary around the save-data engine — all editing flows through here.
     /// </summary>
     public sealed class TrophyDocument
     {
@@ -529,7 +529,7 @@ namespace PS3TrophiesIsPerfect.Services
         /// Rebuilds an imported unlock sequence as realistic nightly play sessions from <paramref name="startDate"/>
         /// to today, finishing with the platinum earned today. Bursts (≤60s) and the platinum pop-gap keep the
         /// donor's EXACT gaps; every other gap is the donor's plus a few minutes (never faster); nothing is ever
-        /// dated in the future. Mutates <paramref name="times"/> in place. (Ported from MainAPP.MaybeRelocateToNightSessions.)
+        /// dated in the future. Mutates <paramref name="timesArr"/> in place. See <see cref="RelocationEngine"/>.
         /// </summary>
         public RelocationResult RelocateToNightSessions(long[] timesArr, DateTime startDate) =>
             RelocationEngine.Rebuild(timesArr, startDate, HasPlatinum);
