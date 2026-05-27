@@ -6,6 +6,23 @@ using System.Text;
 
 namespace TROPHYParser
 {
+    /// <summary>
+    /// Reads and writes <c>TROPUSR.DAT</c>, the per-account trophy state file.
+    ///
+    /// The file is a big-endian binary blob: a <see cref="Header"/>, a table of
+    /// <see cref="TypeRecord"/> entries (each saying where a numbered block lives
+    /// and how big it is), then a sequence of variable blocks. Each block has a
+    /// 16-byte block header (type, size, sequence number, unknown) followed by its
+    /// payload, which is marshalled directly into one of the structs below.
+    ///
+    /// Block types: 1 unknown, 2 account_id, 3 trophy_id + achievement bitmap,
+    /// 4 per-trophy <see cref="TrophyType"/>, 5 <see cref="TrophyListInfo"/> totals,
+    /// 6 per-trophy <see cref="TrophyTimeInfo"/> (earned time + sync state),
+    /// 7 <see cref="UnknowType7"/> counts, 8 hash, 9/10 unknown/padding.
+    ///
+    /// This is the file that records WHICH trophies are earned and WHEN, so it is
+    /// what <see cref="UnlockTrophy"/> / <see cref="LockTrophy"/> mutate.
+    /// </summary>
     public class TROPUSR
     {
         private const string TROPUSR_FILE_NAME = "TROPUSR.DAT";
@@ -13,7 +30,10 @@ namespace TROPHYParser
 
         string path;
         Header header;
+
+        // Block-type table: maps a block type id to its on-disk location/size.
         Dictionary<int, TypeRecord> typeRecordTable;
+
         public List<TrophyType> trophyTypeTable = new List<TrophyType>();
         public List<TrophyTimeInfo> trophyTimeInfoTable = new List<TrophyTimeInfo>();
         public TrophyListInfo trophyListInfo;
@@ -24,6 +44,11 @@ namespace TROPHYParser
         uint[] AchievementRate = new uint[4];
         UnknowType7 unknowType7;
 
+        /// <summary>
+        /// Latest earned-time among trophies already synced to PSN, or 2008-01-01
+        /// (a floor predating PS3 launch) if none are synced. Used as the earliest
+        /// date a newly edited trophy may legally take.
+        /// </summary>
         public DateTime LastSyncTime
         {
             get
@@ -40,6 +65,10 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// Latest earned-time across all trophies (synced or not), or 2008-01-01
+        /// if none have been earned.
+        /// </summary>
         public DateTime LastTrophyTime
         {
             get
@@ -56,6 +85,12 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// Opens <c>TROPUSR.DAT</c> under <paramref name="path"/> and parses every
+        /// block into the tables above. Throws if the file is missing or its magic
+        /// number doesn't match. For RPCS3 dumps the list-info block is rebuilt
+        /// from zeros, since RPCS3 lays the file out differently.
+        /// </summary>
         public TROPUSR(string path, bool isRpcs3Format)
         {
             if (path == null || path.Trim() == string.Empty)
@@ -83,23 +118,24 @@ namespace TROPHYParser
                     typeRecordTable.Add(TypeRecordTmp.ID, TypeRecordTmp);
                 }
 
+                // Walk the file block by block until we run out of bytes. Every
+                // block starts with a 16-byte header (type, payload size, sequence
+                // number, one unknown int) followed by `blocksize` payload bytes.
                 do
                 {
-                    // 1 unknow 2 account_id 3 trophy_id and hash(?) 4 trophy info
-                    // 
                     int type = TROPUSRReader.ReadInt32();
                     int blocksize = TROPUSRReader.ReadInt32();
-                    int sequenceNumber = TROPUSRReader.ReadInt32(); // if have more than same type block, it will be used
+                    int sequenceNumber = TROPUSRReader.ReadInt32(); // distinguishes multiple blocks of the same type
                     int unknow = TROPUSRReader.ReadInt32();
                     byte[] blockdata = TROPUSRReader.ReadBytes(blocksize);
                     switch (type)
                     {
-                        case 1: // unknow
+                        case 1: // unknown
                             break;
-                        case 2:
+                        case 2: // account_id sits 16 bytes into the payload
                             account_id = Encoding.UTF8.GetString(blockdata, 16, 16);
                             break;
-                        case 3:
+                        case 3: // trophy_id, a few unknown shorts, the total count and the achievement bitmap
                             trophy_id = Encoding.UTF8.GetString(blockdata, 0, 16).Trim('\0');
                             short u1 = BitConverter.ToInt16(blockdata, 16).ChangeEndian();
                             short u2 = BitConverter.ToInt16(blockdata, 18).ChangeEndian();
@@ -112,40 +148,40 @@ namespace TROPHYParser
                             AchievementRate[2] = BitConverter.ToUInt32(blockdata, 72);
                             AchievementRate[3] = BitConverter.ToUInt32(blockdata, 76);
                             break;
-                        case 4:
+                        case 4: // one trophy's rank/type record (one block per trophy)
                             trophyTypeTable.Add(blockdata.ToStruct<TrophyType>());
                             break;
-                        case 5:
+                        case 5: // list-wide totals (counts, timestamps, achievement rate)
                             trophyListInfo = blockdata.ToStruct<TrophyListInfo>();
                             break;
-                        case 6:
+                        case 6: // one trophy's earned time + sync state (one block per trophy)
                             trophyTimeInfoTable.Add(blockdata.ToStruct<TrophyTimeInfo>());
                             break;
-                        case 7:// unknow
+                        case 7: // unknown counts
                             unknowType7 = blockdata.ToStruct<UnknowType7>();
-                            // Console.WriteLine("Unsupported block type. (Type{0})", type);
                             break;
-                        case 8: // hash
+                        case 8: // SHA-1 style hash (first 20 bytes)
                             unknowHash = blockdata.SubArray(0, 20);
                             break;
-                        case 9: // 通常寫著白金獎盃的一些數字，不明
-                                // Console.WriteLine("Unsupported block type. (Type{0})", type);
+                        case 9: // usually some numbers related to the platinum trophy; purpose unknown
                             break;
-                        case 10: // i think it just a padding
+                        case 10: // appears to be pure padding
                             break;
                     }
 
                 } while (TROPUSRReader.BaseStream.Position < TROPUSRReader.BaseStream.Length);
 
+                // RPCS3 stores the totals block differently, so rebuild it from a
+                // zeroed buffer rather than trusting what we read.
                 if (this.isRpcs3Format)
                     trophyListInfo = new byte[208].ToStruct<TrophyListInfo>();
                 trophyListInfo.ListLastUpdateTime = DateTime.Now;
             }
         }
 
+        /// <summary>Dumps the parsed contents to the console; for debugging only.</summary>
         public void PrintState()
         {
-
             Console.WriteLine("Counter: {0}", header.UnknowCount);
             Console.WriteLine("Padding:{0}", header.padding.ToHexString());
             foreach (KeyValuePair<int, TypeRecord> fk in typeRecordTable)
@@ -153,20 +189,26 @@ namespace TROPHYParser
                 Console.WriteLine(fk.Value);
             }
             Console.WriteLine("account_id:{0}", account_id);
-            Console.WriteLine("列表生成時間:{0}", trophyListInfo.ListCreateTime);
-            Console.WriteLine("最後取得獎杯時間:{0}", trophyListInfo.ListLastGetTrophyTime);
-            Console.WriteLine("最後更新時間:{0}", trophyListInfo.ListLastUpdateTime);
-            Console.WriteLine("取得獎杯數:{0}", trophyListInfo.GetTrophyNumber);
-            Console.WriteLine("完成率(尚未解析):{0}", trophyListInfo.AchievementRate[0]);
+            Console.WriteLine("List Create Time:{0}", trophyListInfo.ListCreateTime);
+            Console.WriteLine("Last Trophy Earned Time:{0}", trophyListInfo.ListLastGetTrophyTime);
+            Console.WriteLine("Last Update Time:{0}", trophyListInfo.ListLastUpdateTime);
+            Console.WriteLine("Earned Trophy Count:{0}", trophyListInfo.GetTrophyNumber);
+            Console.WriteLine("Achievement Rate (raw):{0}", trophyListInfo.AchievementRate[0]);
 
             for (int i = 0; i < trophyTypeTable.Count; i++)
             {
-                Console.WriteLine("SN:{0}, 類型:{1}, 取得:{2}, 取得時間:{3} ", trophyTypeTable[i].SequenceNumber,
+                Console.WriteLine("SN:{0}, Type:{1}, Got:{2}, Time:{3} ", trophyTypeTable[i].SequenceNumber,
                     trophyTypeTable[i].Type, trophyTimeInfoTable[i].IsGet, trophyTimeInfoTable[i].Time);
             }
-
         }
 
+        /// <summary>
+        /// Writes the in-memory tables back into <c>TROPUSR.DAT</c> in place, seeking
+        /// to each block's recorded offset (via <see cref="TypeRecord.Offset"/>) and
+        /// overwriting only the fields we manage. RPCS3 dumps skip the account/id and
+        /// totals blocks. Note the per-record <c>Position += 16</c> hops over each
+        /// block's 16-byte header before its payload.
+        /// </summary>
         public void Save()
         {
             using (var fileStream = new FileStream(Path.Combine(path, TROPUSR_FILE_NAME), FileMode.Open))
@@ -176,12 +218,12 @@ namespace TROPHYParser
                 if (!isRpcs3Format)
                 {
                     TypeRecord account_id_Record = typeRecordTable[2];
-                    TROPUSRWriter.BaseStream.Position = account_id_Record.Offset + 32; // 空行
-                    TROPUSRWriter.Write(account_id.ToCharArray()); // 帳號
+                    TROPUSRWriter.BaseStream.Position = account_id_Record.Offset + 32; // skip to the account-id field
+                    TROPUSRWriter.Write(account_id.ToCharArray()); // account id
 
                     TypeRecord trophy_id_Record = typeRecordTable[3];
                     TROPUSRWriter.BaseStream.Position = trophy_id_Record.Offset + 16;
-                    TROPUSRWriter.Write(trophy_id.ToCharArray()); // 獎杯ID
+                    TROPUSRWriter.Write(trophy_id.ToCharArray()); // trophy id
                     TROPUSRWriter.BaseStream.Position = trophy_id_Record.Offset + 80;
                 }
 
@@ -189,7 +231,7 @@ namespace TROPHYParser
                 TROPUSRWriter.BaseStream.Position = TrophyType_Record.Offset;
                 foreach (TrophyType type in trophyTypeTable)
                 {
-                    TROPUSRWriter.BaseStream.Position += 16;
+                    TROPUSRWriter.BaseStream.Position += 16; // step over this block's header
                     TROPUSRWriter.Write(type.StructToBytes());
                 }
 
@@ -220,6 +262,12 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// Marks trophy <paramref name="id"/> as earned at <paramref name="dt"/>:
+        /// stamps the time, bumps the earned counts (only if it wasn't already got),
+        /// sets the trophy's bit in the achievement bitmap, flags it earned-but-not-
+        /// synced, and advances the "last earned" timestamp if this is the newest.
+        /// </summary>
         public void UnlockTrophy(int id, DateTime dt)
         {
             TrophyTimeInfo tti = trophyTimeInfoTable[id];
@@ -229,10 +277,12 @@ namespace TROPHYParser
                 trophyListInfo.GetTrophyNumber = trophyListInfo.GetTrophyNumber + 1;
                 unknowType7.TrophyCount = unknowType7.TrophyCount + 1;
             }
+            // Set this trophy's bit in the achievement bitmap (32 trophies per word).
+            // The on-disk copy is byte-swapped; the in-memory mirror is not.
             trophyListInfo.AchievementRate[id / 32] |= (uint)(1 << id).ChangeEndian();
             AchievementRate[id / 32] |= (uint)(1 << id);
             tti.IsGet = true;
-            tti.SyncState = (int)TropSyncState.NotSync; //  0x100100 表示已同步
+            tti.SyncState = (int)TropSyncState.NotSync; // earned locally; 0x100100 would mean already synced
             trophyTimeInfoTable[id] = tti;
             if (dt > trophyListInfo.ListLastGetTrophyTime)
             {
@@ -240,6 +290,12 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// Reverts trophy <paramref name="id"/> to un-earned: clears its time, lowers
+        /// the earned counts, clears its achievement-bitmap bit, and resets sync state.
+        /// Throws <see cref="TrophyAlreadySyncException"/> if the trophy is already
+        /// synced to PSN (it can no longer be safely changed).
+        /// </summary>
         public void LockTrophy(int id)
         {
             TrophyTimeInfo tti = trophyTimeInfoTable[id];
@@ -252,15 +308,24 @@ namespace TROPHYParser
                 trophyListInfo.GetTrophyNumber = trophyListInfo.GetTrophyNumber - 1;
                 unknowType7.TrophyCount = unknowType7.TrophyCount - 1;
             }
+            // Clear this trophy's achievement-bitmap bit (XOR mask), on both the
+            // byte-swapped on-disk copy and the plain in-memory mirror.
             trophyListInfo.AchievementRate[id / 32] &= 0xFFFFFFFF ^ (uint)(1 << id).ChangeEndian();
             AchievementRate[id / 32] &= 0xFFFFFFFF ^ (uint)(1 << id);
             tti.IsGet = false;
             tti.SyncState = 0;
             trophyTimeInfoTable[id] = tti;
-
         }
 
+        // Structs below mirror the on-disk byte layout exactly: [StructLayout(Sequential)]
+        // plus fixed-size MarshalAs byte arrays let a raw block be cast straight into a
+        // struct. DO NOT reorder fields, change their types, or alter array sizes — that
+        // would shift every offset and corrupt parsing. The PS3 stores multi-byte numbers
+        // big-endian, so the public accessors run the raw `_field` through ChangeEndian().
+        // The leading "/// <type>" notes record each field's raw on-disk width.
         #region Structs
+
+        /// <summary>File header: magic number, block count, and reserved padding.</summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct Header
         {
@@ -284,6 +349,10 @@ namespace TROPHYParser
             public byte[] padding;
         }
 
+        /// <summary>
+        /// Directory entry for one block type: its id, payload size, how many times
+        /// it occurs, and the byte offset where its block(s) begin in the file.
+        /// </summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct TypeRecord
         {
@@ -354,13 +423,17 @@ namespace TROPHYParser
                 sb.Append("{ID:").Append(ID).Append(", ");
                 sb.Append("Size:").Append(Size).Append(", ");
                 sb.Append("u3:").Append(unknow3).Append(", ");
-                sb.Append("使用次數:").Append(UsedTimes).Append(", ");
+                sb.Append("UsedTimes:").Append(UsedTimes).Append(", ");
                 sb.Append("Offset:").Append(Offset).Append(", ");
                 sb.Append("u6:").Append(unknow6).Append("}");
                 return sb.ToString();
             }
         }
 
+        /// <summary>
+        /// Per-trophy rank record (block type 4): the trophy's sequence number and
+        /// its rank code (see <see cref="TropType"/>), plus unknown/padding bytes.
+        /// </summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct TrophyType
         {
@@ -406,6 +479,15 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// List-wide totals block (type 5): creation/update/last-earned timestamps,
+        /// the earned-trophy count, and the 128-bit achievement bitmap.
+        ///
+        /// Timestamp fields all follow the same convention (see <see cref="ListCreateTime"/>):
+        /// stored big-endian as .NET-ticks/10 (i.e. microseconds), in local time, with
+        /// a value of 0 meaning "never". Each 16-byte time slot holds the 8-byte value
+        /// twice.
+        /// </summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct TrophyListInfo
         {
@@ -417,6 +499,14 @@ namespace TROPHYParser
             /// byte[16]
             [System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = 16, ArraySubType = System.Runtime.InteropServices.UnmanagedType.I1)]
             private byte[] _listCreateTime;
+
+            /// <summary>
+            /// When the trophy list was created. Decoding: read the first 8 bytes as a
+            /// big-endian long, multiply by 10 to turn microseconds into .NET ticks, and
+            /// add the local UTC offset (the PS3 stores wall-clock local time). Ticks == 0
+            /// means unset. Encoding reverses this and writes the value into both 8-byte
+            /// halves of the 16-byte slot.
+            /// </summary>
             public DateTime ListCreateTime
             {
                 get
@@ -553,6 +643,11 @@ namespace TROPHYParser
             public byte[] padding6;
         }
 
+        /// <summary>
+        /// Per-trophy earned-state record (block type 6): whether the trophy is earned
+        /// (<see cref="IsGet"/>), its sync state, and when it was earned (<see cref="Time"/>,
+        /// same encoding as <see cref="TrophyListInfo.ListCreateTime"/>).
+        /// </summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct TrophyTimeInfo
         {
@@ -570,6 +665,8 @@ namespace TROPHYParser
             /// byte[4]
             [System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = 4, ArraySubType = System.Runtime.InteropServices.UnmanagedType.I1)]
             private byte[] _getOrNot;
+
+            /// <summary>True if the trophy is earned. The flag lives in the last byte of the 4-byte field.</summary>
             public bool IsGet
             {
                 get
@@ -585,6 +682,7 @@ namespace TROPHYParser
             /// int
             public int SyncState;
 
+            /// <summary>True once the <see cref="TropSyncState.Sync"/> bit is set, i.e. the trophy has been synced to PSN.</summary>
             public bool IsSync => (SyncState & (int)TropSyncState.Sync) == (int)TropSyncState.Sync;
 
             /// int
@@ -637,6 +735,11 @@ namespace TROPHYParser
             }
         }
 
+        /// <summary>
+        /// Block type 7 (partly reverse-engineered): holds the earned-trophy count
+        /// (kept in step by <see cref="UnlockTrophy"/>/<see cref="LockTrophy"/>), a
+        /// synced count, a last-sync time, and several still-unknown fields.
+        /// </summary>
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct UnknowType7
         {

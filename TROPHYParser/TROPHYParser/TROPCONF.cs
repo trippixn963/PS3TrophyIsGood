@@ -6,6 +6,13 @@ using System.Xml;
 
 namespace TROPHYParser
 {
+    /// <summary>
+    /// Reads <c>TROPCONF.SFM</c>, the trophy set's definition file. This is an XML
+    /// document describing the game (npcommid, title, parental level) and every
+    /// trophy in the set (id, rank, hidden flag, name, detail). On a real PS3 the
+    /// XML is preceded by a 64-byte (0x40) binary header; RPCS3 dumps omit it.
+    /// This class is read-only — it never writes the file back.
+    /// </summary>
     public class TROPCONF
     {
         private const string TROPCONF_FILE_NAME = "TROPCONF.SFM";
@@ -47,10 +54,14 @@ namespace TROPHYParser
 
             this.path = path;
 
+            // Skip the 64-byte binary header on real PS3 files; RPCS3 dumps start
+            // straight at the XML, so there is nothing to skip there.
             byte[] data = File.ReadAllBytes(fileName);
             int startByte = isRpcs3Format ? 0x00 : 0x40;
             data = data.SubArray(startByte, data.Length - startByte);
 
+            // The payload is UTF-8 XML, often null-padded at the end; trim the
+            // padding before handing it to the XML parser.
             XmlDocument xmldoc = new XmlDocument();
             xmldoc.LoadXml(Encoding.UTF8.GetString(data).Trim('\0'));
 
@@ -80,6 +91,7 @@ namespace TROPHYParser
 
                 trophys.Add(item);
             }
+            // By convention the platinum, when present, is always trophy 0.
             _hasplat = trophys[0].ttype.Equals("P");
         }
 
@@ -97,14 +109,22 @@ namespace TROPHYParser
                 Console.WriteLine(t);
             }
         }
+        /// <summary>
+        /// One trophy definition as declared in TROPCONF.SFM (metadata only — no
+        /// earned/locked state, which lives in TROPUSR.DAT / TROPTRNS.DAT).
+        /// </summary>
         public struct Trophy
         {
             public int id;
+
+            /// <summary>"yes" if the trophy is hidden until earned, otherwise "no".</summary>
             public string hidden;
+
             /// <summary>
-            /// P = 白金 B = 銅 S = 銀 G = 金
+            /// Single-letter trophy rank: P = Platinum, G = Gold, S = Silver, B = Bronze.
             /// </summary>
             public string ttype;
+
             public int pid;
             public string name;
             public string detail;
