@@ -1,21 +1,20 @@
 <div align="center">
 
+<!-- NOTE: logo art still says the old name; regenerate doc/images/header-*.png for the new brand. -->
 <picture>
    <source media="(prefers-color-scheme: dark)" srcset="doc/images/header-dark.png" width="100%" height="auto">
-   <img alt="PS3TrophyIsGood logo" src="doc/images/header-light.png" width="100%" height="auto">
+   <img alt="PS3TrophiesIsPerfect logo" src="doc/images/header-light.png" width="100%" height="auto">
 </picture>
 
-# PS3TrophyIsGood
+# PS3TrophiesIsPerfect
 
-A personal, English rewrite of an old PS3 trophy editor.
+A ground-up redesign of a PlayStation 3 trophy timestamp editor — modern Fluent UI, PSNProfiles cloning, and a legit-pacing relocation engine.
 
 [![][license-shield]][license-link]
 [![][platform-shield]][platform-link]
 [![][framework-shield]][framework-link]
 [![][last-commit-shield]][last-commit-link]
 [![][stars-shield]][stars-link]
-
-![Demo](http://4.bp.blogspot.com/-dMj1nom1pKc/USnCAcmDu6I/AAAAAAAADWg/UFiD6o3uguU/s1600/t1.png)
 
 </div>
 
@@ -30,33 +29,47 @@ A personal, English rewrite of an old PS3 trophy editor.
 
 ## What this is
 
-A Windows trophy editor for the PlayStation 3. Open a trophy folder copied from a console, edit timestamps, optionally resign for a different account ID, copy it back.
+A Windows trophy editor for the PlayStation 3. Open a trophy folder copied off a console, edit unlock timestamps, optionally re-sign it for a different account, and copy it back.
 
-The original project is in Chinese and hasn't been actively maintained in years. This fork is my own English rewrite for personal use — translated UI, translated identifiers, cleaned-up internals, a few quality-of-life additions.
+**PS3TrophiesIsPerfect is a complete, ground-up redesign** of the older `PS3TrophyIsGood` fork — a brand-new WPF front end, a streamlined PSNProfiles-only cloning workflow, and a side-by-side comparison view, built on top of the same proven save-file engine.
 
-## What's in this fork
+## A complete redesign
 
-- Full English UI, code identifiers, and comments
-- Refactored internals
-- Local-JSON timestamp import (in addition to the original web-scrape)
-- FlareSolverr is now optional — the old startup path crashed without it
-- `TROPHYParser`, `BigEndianTool`, `ListViewEx` sources vendored — no submodule dance
-- Visual Studio MigrationBackup artifacts purged from the tree
+The lineage: darkautism wrote the original (Chinese) PS3 trophy editor and, crucially, reverse-engineered the encrypted trophy save format. `PS3TrophyIsGood` was an English rewrite of that. **PS3TrophiesIsPerfect** is a rebuild of the *application* around that engine:
+
+- **New UI from scratch** — a modern, Fluent dark interface (WPF), replacing the old Win7-era WinForms shell. Custom window chrome, real trophy artwork, a live completion ring, animated in-app dialogs.
+- **PSNProfiles-first workflow** — clone a real player's run directly from their profile page (the older local-JSON / `psntrophyleaders` paths are gone).
+- **Legit-pacing relocation** — rebuilds a cloned run into believable nightly play sessions in a date window you choose.
+- **Side-by-side comparison** — verify your clone against the donor's actual order and gaps.
+- **Quality-of-life everywhere** — profile picker, remembered last folder/window, keyboard shortcuts, search, sorting, per-trophy right-click, themed dialogs.
+
+> The save-file engine — `TROPHYParser` / `BigEndianTool`, the part that actually reads and writes the encrypted trophy format — is darkautism's original work and is used **completely unchanged.** That was the hard part, and it's entirely his. See [Credits](#credits).
+
+## Features
+
+- **Modern Fluent dark UI** — game icon + title + completion-percentage ring, color-coded rows (earned / synced / locked), filter box, sortable columns.
+- **Open** a trophy folder by drag-and-drop or the Open button; trophies load with their real artwork.
+- **Edit timestamps** — set, change, or lock individual trophies (double-click or right-click); or clear them all.
+- **Re-sign** a trophy folder for a different account — drop a `*.SFO` into `profiles/` and pick it when saving.
+- **Copy from PSNProfiles** — scrape a player's earned trophies straight from their profile (Cloudflare handled via a bundled FlareSolverr), matched to your game **by name** so cosmetic title differences don't break it.
+- **Night-session relocation** — rebuilds the cloned run as realistic nightly sessions from a start date through today:
+  - exact burst gaps preserved (stacked/story pops stay identical),
+  - every other gap **slower** than the donor, never faster,
+  - platinum earned "just now," and **nothing ever dated in the future.**
+- **Donor comparison** — a merged diff view: each trophy with the donor's time/gap next to your applied time/gap, and a verdict (`✓ exact` for bursts, `+slower` where intended, `⚠ faster` flagged red).
+- **Remembers** your last folder, window size/position, and selected profile between runs.
 
 ## Build
 
-Requires **Visual Studio 2019+** with the **.NET desktop development** workload. Target framework is **.NET Framework 4.8**.
+Requires the **.NET SDK** and the **.NET Framework 4.8** targeting pack (ships with Visual Studio 2019+ / Build Tools).
 
 ```sh
-git clone https://github.com/trippixn963/PS3TrophyIsGood.git
+git clone https://github.com/trippixn963/PS3TrophiesIsPerfect.git
+cd PS3TrophiesIsPerfect
+dotnet build PS3TrophiesIsPerfect/PS3TrophiesIsPerfect.csproj -c Debug
 ```
 
-Open `PS3TrophyIsGood.sln` and build. Or from a Developer command prompt:
-
-```sh
-msbuild PS3TrophyIsGood.sln -t:restore
-msbuild PS3TrophyIsGood.sln -p:Configuration=Release
-```
+`pfdtool` (encryption) is bundled. For **Copy from PSNProfiles**, a `flaresolverr/` folder must sit next to the built `.exe`. Launch the app **non-elevated** (a normal double-click) — running it as administrator blocks folder drag-and-drop.
 
 No prebuilt binary is provided.
 
@@ -68,28 +81,25 @@ Read this before touching anything.
 - Trophies can become corrupted.
 - The sync can fail mid-way and leave a profile in a bad state.
 - Your console ID (IDPS) can be flagged.
+- Syncing a **future-dated** trophy is an instant flag — the relocation engine guards against it, but you are still responsible for what you sync.
 
 If any of that happens: there is no recovery, no recourse, and no help available here. Don't run this on an account or console you care about.
 
 ## Usage
 
-The program bundles `pfdtool` and handles encryption/decryption itself — **do not decrypt anything manually.** After each edit, close the file (or the program) so the trophies get re-encrypted.
+The program bundles `pfdtool` and handles encryption/decryption itself — **do not decrypt anything manually.** After editing, **Save** re-encrypts the folder.
 
-Color legend:
+Row colors:
 
-| Color | Meaning |
+| Row | Meaning |
 |---|---|
-| Gray | Not obtained |
-| White | Obtained, not yet synced to PSN |
-| Red | Already synced to PSN |
-
-![Main view](http://1.bp.blogspot.com/-wl5TyzveZ3A/USnDCY--SzI/AAAAAAAADW8/UVHzFwXgaTo/s1600/T2.png)
-
-The green circle is the trophy name; the red circle is the completion rate. Blue is the PSN XP value — what your account gains once synced.
+| Dimmed | Not obtained |
+| Normal | Obtained, not yet synced to PSN |
+| Rose tint | Already synced to PSN (can't be edited) |
 
 ### Opening a file
 
-Drag the trophy folder onto the window. It loads automatically.
+Drag the trophy folder onto the window (or use **Open**). It loads automatically.
 
 ## Walkthrough
 
@@ -99,44 +109,24 @@ If the trophies have never been synced to PSN before, set the console ID and use
 
 **2.** Open the program and drag the folder onto it.
 
-**3.** Edit, then copy the trophy folder back to the console. **Back up first.**
+**3.** (Optional) **Copy from PSNProfiles**, relocate to a date window, and review the comparison tab.
 
-**4.** Verify on the console:
+**4.** Edit as needed, **Save**, then copy the trophy folder back to the console. **Back up first.**
 
-![On console](http://2.bp.blogspot.com/-v8NAzSPKSHo/USnB_kbSsbI/AAAAAAAADWM/KKRthffJW2g/s1600/TVCAM%25E8%25A3%259D%25E7%25BD%25AE_20130224_145637.289.jpg)
-
-Trophies will show some completion percentage. Quirk: even at 100%, individual trophies may still look locked in the UI — sync still works.
-
-![Before sync](http://4.bp.blogspot.com/-yLq0hQb8b28/USnCAKajXSI/AAAAAAAADWY/8ovaRs6eQZ0/s1600/TVCAM%25E8%25A3%259D%25E7%25BD%25AE_20130224_145652.047.jpg)
-
-**5.** Sync to PSN. **This is the dangerous step.** Re-read [Risks](#risks).
-
-![After sync](http://3.bp.blogspot.com/-69ay5OYMsYo/USnB_Xy0ngI/AAAAAAAADWQ/K5YI4SBrAiI/s1600/TVCAM%25E8%25A3%259D%25E7%25BD%25AE_20130224_145646.119.jpg)
-
-A sync error mid-process is common; trophies usually appear afterward anyway.
-
-Showing up on Vita:
-
-![On Vita](http://3.bp.blogspot.com/-_Gn65OQVVX8/USnB_ZbHaeI/AAAAAAAADWI/xq-PS-BjwFk/s1600/2013-02-24-145001.jpg)
-
-## Features
-
-- Edit individual trophy timestamps
-- Resign trophy folders to a different account ID (drop a `*.SFO` into `profiles/`)
-- Copy timestamps from a profile on `psntrophyleaders.com`
-- Import timestamps from a local JSON file (name-keyed, tolerant matching)
-- Smart copy — jitter and time offset so copied profiles look less identical to the source
-- Instant Platinum with randomized timestamps
-- DLC detection
-- Platinum-aware: unlock the first trophy on platinum-less games without errors
-- RPCS3 format support
-- Optional FlareSolverr-based Cloudflare bypass
+**5.** Sync to PSN. **This is the dangerous step.** Re-read [Risks](#risks). A sync error mid-process is common; trophies usually appear afterward anyway.
 
 ## Troubleshooting (one entry)
 
 **HTTP 403 / 500 fetching timestamps** — Cloudflare is blocking the scrape. Drop in the latest FlareSolverr from its [releases](https://github.com/FlareSolverr/FlareSolverr/releases), replacing the bundled folder.
 
 That's the only troubleshooting note. Anything else, you're on your own.
+
+## Credits
+
+- **[darkautism](https://github.com/darkautism)** — the original PS3 trophy editor and, more importantly, the reverse-engineering of the encrypted trophy save format (`TROPHYParser`). That engine is the hard part and is used here **unchanged**. This project is a redesign of the application around his work. Original work © 2016 darkautism.
+- **`PS3TrophyIsGood`** — the English rewrite this redesign grew out of.
+- **flatz** — `pfdtool`, used for trophy encryption/decryption.
+- **[FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)** — Cloudflare bypass for the PSNProfiles scrape.
 
 ## License
 
@@ -149,7 +139,7 @@ MIT — see [LICENSE](LICENSE). Original work © 2016 darkautism.
 [platform-link]: #build
 [framework-shield]: https://img.shields.io/badge/.NET%20Framework-4.8-512BD4?style=flat-square&logo=dotnet&logoColor=white
 [framework-link]: #build
-[last-commit-shield]: https://img.shields.io/github/last-commit/trippixn963/PS3TrophyIsGood?style=flat-square&color=success
-[last-commit-link]: https://github.com/trippixn963/PS3TrophyIsGood/commits/main
-[stars-shield]: https://img.shields.io/github/stars/trippixn963/PS3TrophyIsGood?style=flat-square&color=ffcb47
-[stars-link]: https://github.com/trippixn963/PS3TrophyIsGood/stargazers
+[last-commit-shield]: https://img.shields.io/github/last-commit/trippixn963/PS3TrophiesIsPerfect?style=flat-square&color=success
+[last-commit-link]: https://github.com/trippixn963/PS3TrophiesIsPerfect/commits/main
+[stars-shield]: https://img.shields.io/github/stars/trippixn963/PS3TrophiesIsPerfect?style=flat-square&color=ffcb47
+[stars-link]: https://github.com/trippixn963/PS3TrophiesIsPerfect/stargazers
