@@ -19,7 +19,7 @@ Clone a real player's run, pace it like a human actually played it, and verify i
 > **This is a personal hobby project.** It's published in case it's useful to anyone else, but:
 > - **No support** is provided.
 > - **No issues, pull requests, or feature requests** will be reviewed or accepted.
-> - **No releases, binaries, or downloads** are published — build it yourself from source.
+> - A **prebuilt release** is available under [Releases](https://github.com/trippixn963/PS3TrophiesIsPerfect/releases) — or build it yourself from source.
 > - Use entirely **at your own risk.** See [Risks](#risks) before doing anything with this.
 
 ---
@@ -90,7 +90,9 @@ cd PS3TrophiesIsPerfect
 dotnet build PS3TrophiesIsPerfect/PS3TrophiesIsPerfect.csproj -c Debug
 ```
 
-`pfdtool` (encryption) is bundled. For **Copy from PSNProfiles**, a `flaresolverr/` folder must sit next to the built `.exe`. Launch the app **non-elevated** (a normal double-click) — running it as administrator blocks folder drag-and-drop. No prebuilt binary is provided.
+`pfdtool` (encryption) is bundled. For **Copy from PSNProfiles**, a `flaresolverr/` folder must sit next to the `.exe` — grab it from [FlareSolverr releases](https://github.com/FlareSolverr/FlareSolverr/releases) (it's not bundled in the download). Launch the app **non-elevated** (a normal double-click) — running it as administrator blocks folder drag-and-drop.
+
+A prebuilt Windows build is published under [Releases](https://github.com/trippixn963/PS3TrophiesIsPerfect/releases) if you'd rather not build it yourself.
 
 ---
 
