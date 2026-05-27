@@ -1,12 +1,14 @@
 using System;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using System.Windows.Media;
 using PS3TrophiesIsPerfect.Services;
 
 namespace PS3TrophiesIsPerfect.Models
 {
     /// <summary>One trophy in a game's detail view: icon, name, description, type, rarity, the group it
-    /// belongs to (base game / DLC), and this account's earned status + unlock time (from Sony's data).</summary>
+    /// belongs to (base game / DLC), and this account's earned status + unlock time (from Sony's data).
+    /// The plain data fields are persisted (cached to disk); everything computed/visual is rebuilt.</summary>
     public sealed class TrophyDetail : INotifyPropertyChanged
     {
         public int Id { get; set; }
@@ -22,27 +24,36 @@ namespace PS3TrophiesIsPerfect.Models
         public DateTime? EarnedUtc { get; set; }
         public double EarnedRate { get; set; } // % of players who own this trophy
 
+        [JsonIgnore]
         public string TypeText =>
             string.IsNullOrEmpty(Type) ? "" : char.ToUpper(Type[0]) + Type.Substring(1);
 
+        [JsonIgnore]
         public string EarnedText =>
             Earned
                 ? (EarnedUtc?.ToLocalTime().ToString("d MMM yyyy  h:mm tt") ?? "Earned")
                 : "Locked";
 
+        [JsonIgnore]
         public string EarnedAgo =>
             Earned && EarnedUtc.HasValue ? Ago(EarnedUtc.Value.ToLocalTime()) : "";
 
+        [JsonIgnore]
         public double EarnedOpacity => Earned ? 1.0 : 0.45;
 
         // ---- Rarity ----
+        [JsonIgnore]
         public string RarityText => EarnedRate <= 0 ? "" : EarnedRate.ToString("0.#") + "%";
+
+        [JsonIgnore]
         public string RarityLabel =>
             EarnedRate <= 0 ? ""
             : EarnedRate < 5 ? "Ultra Rare"
             : EarnedRate < 20 ? "Rare"
             : EarnedRate < 50 ? "Uncommon"
             : "Common";
+
+        [JsonIgnore]
         public Brush RarityBrush =>
             EarnedRate <= 0 ? Muted
             : EarnedRate < 5 ? Gold
@@ -84,10 +95,13 @@ namespace PS3TrophiesIsPerfect.Models
         }
 
         /// <summary>The trophy's type badge — a shared embedded asset, instant.</summary>
+        [JsonIgnore]
         public ImageSource TypeBadge => TrophyBadges.ForType(Type);
 
         /// <summary>The trophy graphic — downloaded from Sony's open CDN and cached, set after the list shows.</summary>
         private ImageSource _icon;
+
+        [JsonIgnore]
         public ImageSource Icon
         {
             get => _icon;

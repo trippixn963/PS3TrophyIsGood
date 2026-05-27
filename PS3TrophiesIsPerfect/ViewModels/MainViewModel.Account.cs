@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
+using System.Windows.Input;
 using PS3TrophiesIsPerfect.Dialogs;
+using PS3TrophiesIsPerfect.Infra;
 using PS3TrophiesIsPerfect.Services;
 
 namespace PS3TrophiesIsPerfect.ViewModels
@@ -77,6 +79,23 @@ namespace PS3TrophiesIsPerfect.ViewModels
             get => _hasPsnSummary;
             set => Set(ref _hasPsnSummary, value);
         }
+
+        // Clicking the profile chip refreshes the stats; if no account is set yet, it sets one instead.
+        private ICommand _profileClickCommand;
+        public ICommand ProfileClickCommand =>
+            _profileClickCommand
+            ?? (
+                _profileClickCommand = new RelayCommand(
+                    async () =>
+                    {
+                        if (!HasMyUser)
+                            await SetMyUserAsync();
+                        else
+                            await LoadPsnSummaryAsync();
+                    },
+                    () => !IsBusy
+                )
+            );
 
         /// <summary>Loads the account's overall trophy level + totals (passive — no prompt if not linked).</summary>
         public async Task LoadPsnSummaryAsync()

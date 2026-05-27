@@ -124,7 +124,7 @@
         >
           <StackPanel Orientation="Horizontal">
             <ui:FontIcon Glyph="" Style="{StaticResource ToolIcon}" />
-            <TextBlock Text="Copy from PSNProfiles" VerticalAlignment="Center" />
+            <TextBlock Text="Copy from PSN" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
         <Button
@@ -190,7 +190,7 @@
         >
           <StackPanel Orientation="Horizontal">
             <ui:FontIcon Glyph="" Style="{StaticResource ToolIcon}" />
-            <TextBlock Text="My PS3 Games" VerticalAlignment="Center" />
+            <TextBlock Text="My Games" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
         <!-- Linked PSN account (avatar + name, persisted); click to set/change. -->
@@ -198,9 +198,15 @@
           DockPanel.Dock="Right"
           Style="{StaticResource ToolButton}"
           Margin="0,0,8,0"
-          Command="{Binding SetMyUserCommand}"
-          ToolTip="Your linked PSN account — click to set or change"
+          Command="{Binding ProfileClickCommand}"
+          ToolTip="Click to refresh your stats; right-click to change account"
         >
+          <Button.ContextMenu>
+            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+              <MenuItem Header="Refresh stats" Command="{Binding ProfileClickCommand}" />
+              <MenuItem Header="Change PSN account..." Command="{Binding SetMyUserCommand}" />
+            </ContextMenu>
+          </Button.ContextMenu>
           <StackPanel Orientation="Horizontal">
             <Grid
               Width="22"

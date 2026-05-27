@@ -123,6 +123,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         {
             SelectedGame = null;
             SelectedTab = 2;
+            _ = LoadPsnSummaryAsync();
             var cache = Settings.MyGamesCache;
             bool validCache =
                 cache != null
@@ -266,10 +267,21 @@ namespace PS3TrophiesIsPerfect.ViewModels
             SelectedGame = game;
             GameTrophies.Clear();
 
-            // Re-opening a game is instant: reuse the cached list (icons already loaded on those objects).
+            // 1) In-memory (this session) — instant, icons already loaded on those objects.
             if (game.GameId != null && _trophyCache.TryGetValue(game.GameId, out var hit))
             {
                 ShowTrophies(hit, game.GameId);
+                return;
+            }
+
+            // 2) On disk (previous sessions) — instant; refresh in-progress games in the background.
+            var disk = TrophyCache.Load(game.GameId);
+            if (disk != null && disk.Count > 0)
+            {
+                _trophyCache[game.GameId] = disk;
+                ShowTrophies(disk, game.GameId);
+                if (game.Percent < 100)
+                    _ = RefreshGameTrophiesAsync(game);
                 return;
             }
 
@@ -312,9 +324,34 @@ namespace PS3TrophiesIsPerfect.ViewModels
             IsBusy = false;
 
             if (game.GameId != null)
+            {
                 _trophyCache[game.GameId] = trophies;
+                TrophyCache.Save(game.GameId, trophies);
+            }
             ShowTrophies(trophies, game.GameId);
         }
+
+        /// <summary>Silently re-fetches an in-progress game's trophies behind a shown disk-cached copy,
+        /// updating the cache and the view only if the earned set actually changed.</summary>
+        private async Task RefreshGameTrophiesAsync(GameProgress game)
+        {
+            List<TrophyDetail> fresh;
+            try
+            {
+                fresh = await Task.Run(() => Psn.GetTrophies(game.GameId));
+            }
+            catch
+            {
+                return; // network/auth — keep showing the cached copy
+            }
+            _trophyCache[game.GameId] = fresh;
+            TrophyCache.Save(game.GameId, fresh);
+            if (SelectedGame == game && EarnedCount(fresh) != EarnedCount(_allTrophies))
+                ShowTrophies(fresh, game.GameId);
+        }
+
+        private static int EarnedCount(IEnumerable<TrophyDetail> list) =>
+            list?.Count(t => t.Earned) ?? -1;
 
         private void ShowTrophies(List<TrophyDetail> trophies, string gameId)
         {
