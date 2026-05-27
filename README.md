@@ -1,11 +1,5 @@
 <div align="center">
 
-<!-- NOTE: logo art still says the old name; regenerate doc/images/header-*.png for the new brand. -->
-<picture>
-   <source media="(prefers-color-scheme: dark)" srcset="doc/images/header-dark.png" width="100%" height="auto">
-   <img alt="PS3TrophiesIsPerfect logo" src="doc/images/header-light.png" width="100%" height="auto">
-</picture>
-
 # PS3TrophiesIsPerfect
 
 A ground-up redesign of a PlayStation 3 trophy timestamp editor — modern Fluent UI, PSNProfiles cloning, and a legit-pacing relocation engine.

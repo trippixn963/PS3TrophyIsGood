@@ -15,7 +15,10 @@
             <SolidColorBrush x:Key="Surface" Color="#0D0D0D" />
             <SolidColorBrush x:Key="Card" Color="#161616" />
             <SolidColorBrush x:Key="CardBorder" Color="#262626" />
+            <SolidColorBrush x:Key="Text" Color="#F0F0F0" />
             <SolidColorBrush x:Key="TextMuted" Color="#8A8A8A" />
+            <SolidColorBrush x:Key="HeaderBg" Color="#1C1C1C" />
+            <SolidColorBrush x:Key="SelectionBg" Color="#1B2B45" />
 
             <!-- Metal colours for the trophy-type pill. -->
             <SolidColorBrush x:Key="Metal.P" Color="#6FC8F0" />
