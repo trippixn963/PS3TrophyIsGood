@@ -30,14 +30,18 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ObservableCollection<TrophyRow> Trophies { get; } = new ObservableCollection<TrophyRow>();
         public ObservableCollection<string> Profiles { get; } = new ObservableCollection<string>();
 
-        // --- donor (cloned-from) comparison panel ---
-        public ObservableCollection<TrophyRow> DonorTrophies { get; } = new ObservableCollection<TrophyRow>();
+        // --- donor (cloned-from) comparison ---
+        public ObservableCollection<ComparisonRow> Comparison { get; } = new ObservableCollection<ComparisonRow>();
+        private List<DonorEntry> _donor = new List<DonorEntry>();
 
         private bool _hasDonor;
         public bool HasDonor { get => _hasDonor; set => Set(ref _hasDonor, value); }
 
         private string _donorTitle = "";
         public string DonorTitle { get => _donorTitle; set => Set(ref _donorTitle, value); }
+
+        private int _selectedTab;
+        public int SelectedTab { get => _selectedTab; set => Set(ref _selectedTab, value); }
 
         private string _selectedProfile = TrophyDocument.DefaultProfile;
         public string SelectedProfile
@@ -103,18 +107,28 @@ namespace PS3TrophiesIsPerfect.ViewModels
         // --- donor comparison panel ---
         private void ShowDonor(List<DonorEntry> entries, string title)
         {
-            DonorTrophies.Clear();
-            foreach (var r in _doc.BuildDonorRows(entries))
-                DonorTrophies.Add(r);
+            _donor = entries ?? new List<DonorEntry>();
             DonorTitle = string.IsNullOrEmpty(title) ? "Cloned from PSNProfiles" : title;
-            HasDonor = DonorTrophies.Count > 0;
+            HasDonor = _donor.Count > 0;
+            RebuildComparison();
+            if (HasDonor) SelectedTab = 1;
+        }
+
+        private void RebuildComparison()
+        {
+            Comparison.Clear();
+            if (!HasDonor) return;
+            foreach (var r in _doc.BuildComparison(_donor))
+                Comparison.Add(r);
         }
 
         private void ClearDonor()
         {
-            DonorTrophies.Clear();
+            _donor = new List<DonorEntry>();
+            Comparison.Clear();
             HasDonor = false;
             DonorTitle = "";
+            SelectedTab = 0;
             Settings.Donor = new List<DonorEntry>();
             Settings.DonorTitle = "";
             Settings.Save();
@@ -186,6 +200,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             CompletionPercent = s.Percent;
             GameIcon = _doc.LoadGameIcon();
             HasGame = true;
+            if (HasDonor) RebuildComparison();
         }
 
         private void ApplyFilter()

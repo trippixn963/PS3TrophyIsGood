@@ -175,44 +175,68 @@ namespace PS3TrophiesIsPerfect.Services
         }
 
         /// <summary>
-        /// Builds the donor (cloned-from) rows for the comparison panel: sorted by the donor's own unlock
-        /// time, with order #, elapsed/gap, and — where the name matches a trophy in the loaded game — the
-        /// real artwork and type. Independent of the local unlock state (these are the donor's originals).
+        /// Builds the merged donor-vs-you comparison, sorted by the donor's unlock order. For each donor
+        /// trophy it pairs the donor's time/gap with your current applied time/gap (matched by name) and a
+        /// verdict on the gap: exact (bursts), slower (intended), faster (a red flag), or — (no data).
         /// </summary>
-        public List<TrophyRow> BuildDonorRows(IReadOnlyList<DonorEntry> donor)
+        public List<ComparisonRow> BuildComparison(IReadOnlyList<DonorEntry> donor)
         {
-            var local = new Dictionary<string, KeyValuePair<string, int>>(StringComparer.Ordinal); // name -> (typeLetter, tropId)
+            var local = new Dictionary<string, int>(StringComparer.Ordinal); // normalised name -> local index
             if (_tconf != null)
                 for (int i = 0; i < _tconf.Count; i++)
                 {
                     string key = NormalizeTrophyName(_tconf[i].name);
                     if (key.Length > 0 && !local.ContainsKey(key))
-                        local[key] = new KeyValuePair<string, int>(TypeLetter(_tconf[i].ttype), _tconf[i].id);
+                        local[key] = i;
                 }
 
             var sorted = donor.Where(d => d != null && d.Date != 0).OrderBy(d => d.Date).ToList();
-            var rows = new List<TrophyRow>();
-            DateTime first = default, prev = default;
+            var rows = new List<ComparisonRow>();
+            DateTime donorPrev = default;
+            DateTime? myPrev = null;
+
             for (int k = 0; k < sorted.Count; k++)
             {
-                DateTime dt = sorted[k].Date.TimeStampToDateTime();
-                if (k == 0) first = dt;
-                string elapsed = k == 0 ? string.Empty
-                    : k == 1 ? FormatSpan(dt - first)
-                    : FormatSpan(dt - first) + " (+" + FormatSpan(dt - prev) + ")";
+                DateTime dTime = sorted[k].Date.TimeStampToDateTime();
+                TimeSpan? dGap = k == 0 ? (TimeSpan?)null : dTime - donorPrev;
 
-                bool matched = local.TryGetValue(NormalizeTrophyName(sorted[k].Name), out var info);
-                rows.Add(new TrophyRow
+                string type = string.Empty;
+                System.Windows.Media.ImageSource icon = null;
+                DateTime? myTime = null;
+                if (local.TryGetValue(NormalizeTrophyName(sorted[k].Name), out int li))
+                {
+                    type = TypeLetter(_tconf[li].ttype);
+                    icon = LoadIcon(_tconf[li].id);
+                    myTime = UnlockTimeOf(li);
+                }
+                TimeSpan? myGap = (k > 0 && myTime.HasValue && myPrev.HasValue) ? myTime.Value - myPrev.Value : (TimeSpan?)null;
+
+                var row = new ComparisonRow
                 {
                     Order = k + 1,
                     Name = sorted[k].Name,
-                    Type = matched ? info.Key : string.Empty,
-                    Got = true,
-                    Time = dt,
-                    Elapsed = elapsed,
-                    Icon = matched ? LoadIcon(info.Value) : null,
-                });
-                prev = dt;
+                    Type = type,
+                    Icon = icon,
+                    DonorTimeText = dTime.ToString("yyyy/MM/dd  HH:mm:ss"),
+                    DonorGapText = dGap == null ? "" : "+" + FormatSpan(dGap.Value),
+                    MyTimeText = myTime.HasValue ? myTime.Value.ToString("yyyy/MM/dd  HH:mm:ss") : "—",
+                    MyGapText = myGap == null ? "" : "+" + FormatSpan(myGap.Value),
+                };
+
+                if (!myTime.HasValue) { row.Match = "missing"; row.MatchText = "—"; }
+                else if (dGap == null) { row.Match = "first"; row.MatchText = "—"; }
+                else if (myGap == null) { row.Match = "missing"; row.MatchText = "—"; }
+                else
+                {
+                    long sec = (long)System.Math.Round((myGap.Value - dGap.Value).TotalSeconds);
+                    if (sec == 0) { row.Match = "exact"; row.MatchText = "✓ exact"; }
+                    else if (sec > 0) { row.Match = "slower"; row.MatchText = "+" + FormatSpan(System.TimeSpan.FromSeconds(sec)); }
+                    else { row.Match = "faster"; row.MatchText = "⚠ −" + FormatSpan(System.TimeSpan.FromSeconds(-sec)); }
+                }
+
+                rows.Add(row);
+                donorPrev = dTime;
+                myPrev = myTime;
             }
             return rows;
         }
