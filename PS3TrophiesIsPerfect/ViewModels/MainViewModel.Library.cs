@@ -3,36 +3,59 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 using PS3TrophiesIsPerfect.Dialogs;
+using PS3TrophiesIsPerfect.Infra;
 using PS3TrophiesIsPerfect.Models;
 using PS3TrophiesIsPerfect.Services;
 
 namespace PS3TrophiesIsPerfect.ViewModels
 {
-    // "My PS3 Games": the linked account's PS3 library + completion. Cached (completed games never change),
-    // shown instantly, then refreshed in the background; banners stream in (parallel + disk-cached).
+    // "My PS3 Games": the linked PlayStation account's PS3 library + per-game trophy detail, from Sony's
+    // own data (open image CDN, exact unlock times). The list is cached and shown instantly, then refreshed;
+    // banners and trophy icons stream in (parallel + disk-cached forever, since completed games never change).
     public sealed partial class MainViewModel
     {
+        private PsnApi _psnApi;
+        private PsnApi Psn => _psnApi ?? (_psnApi = new PsnApi(Settings));
+
         public ObservableCollection<GameProgress> MyGames { get; } = new ObservableCollection<GameProgress>();
+        public ObservableCollection<TrophyDetail> GameTrophies { get; } = new ObservableCollection<TrophyDetail>();
 
         private bool _hasMyGames;
         public bool HasMyGames { get => _hasMyGames; set => Set(ref _hasMyGames, value); }
 
+        // Master-detail: a selected game switches the tab from the games list to that game's trophy list.
+        private GameProgress _selectedGame;
+        public GameProgress SelectedGame
+        {
+            get => _selectedGame;
+            set { Set(ref _selectedGame, value); Raise(nameof(IsViewingGame)); Raise(nameof(NotViewingGame)); }
+        }
+        public bool IsViewingGame => _selectedGame != null;
+        public bool NotViewingGame => _selectedGame == null;
+
+        private ICommand _backToGamesCommand;
+        public ICommand BackToGamesCommand => _backToGamesCommand ??
+            (_backToGamesCommand = new RelayCommand(() => { GameTrophies.Clear(); SelectedGame = null; }));
+
+        // ---- Games list --------------------------------------------------------------------------
+
         private async Task LoadMyGamesAsync()
         {
-            if (!HasMyUser)
+            SelectedGame = null;
+            SelectedTab = 2;
+            // Only trust a PSN-shaped cache (npCommunicationIds look like "NPWR…"); ignore any old
+            // PSNProfiles-format cache from before this feature moved to Sony's data.
+            var cache = Settings.MyGamesCache;
+            bool validCache = cache != null && cache.Count > 0
+                && cache[0].GameId != null && cache[0].GameId.StartsWith("NPWR", StringComparison.OrdinalIgnoreCase);
+            if (validCache)
             {
-                await SetMyUserAsync();
-                if (!HasMyUser) return;
-            }
-
-            bool hadCache = Settings.MyGamesUser == MyPsnUser
-                && Settings.MyGamesCache != null && Settings.MyGamesCache.Count > 0;
-            if (hadCache)
-            {
-                // Instant: show the cached list (no Cloudflare wait) + any cached banners, then refresh quietly.
-                ShowGames(Settings.MyGamesCache, select: true);
-                StreamBanners(MyGames.ToList(), cookie: null, ua: null);
+                // Instant: show the cached list + cached art (no round-trip), then refresh quietly.
+                ShowGames(cache, select: true);
+                StreamImages(MyGames.ToList());
                 _ = RefreshGamesLive(showBusy: false);
             }
             else
@@ -43,32 +66,32 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
         private async Task RefreshGamesLive(bool showBusy)
         {
-            if (showBusy) { IsBusy = true; BusyText = "Fetching your PS3 games from PSNProfiles…"; }
-            Ps3Library lib;
-            try { lib = await Task.Run(() => PsnProfilesScraper.FetchPs3Games(MyPsnUser)); }
-            catch (Exception ex)
+            List<GameProgress> games;
+            if (showBusy) { IsBusy = true; BusyText = "Loading your PS3 games from PlayStation…"; }
+            try { games = await Task.Run(() => Psn.GetPs3Games()); }
+            catch (PsnApi.AuthRequiredException)
             {
-                if (showBusy) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't fetch games"); }
-                return; // keep showing whatever we already had
+                if (showBusy) IsBusy = false;
+                if (!await EnsureSignedInAsync()) return; // keep showing whatever we already had
+                if (showBusy) { IsBusy = true; BusyText = "Loading your PS3 games from PlayStation…"; }
+                try { games = await Task.Run(() => Psn.GetPs3Games()); }
+                catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load games"); return; }
             }
+            catch (Exception ex) { if (showBusy) IsBusy = false; await Modern.Info(ex.Message, "Couldn't load games"); return; }
             if (showBusy) IsBusy = false;
 
-            // Persist the fresh library — completed games are immutable, so this cache is safe to keep.
-            Settings.MyGamesUser = MyPsnUser;
-            Settings.MyGamesCache = lib.Games;
+            // Cache forever — completed games are immutable.
+            Settings.MyGamesCache = games;
             Settings.Save();
 
-            if (lib.Games.Count == 0)
+            if (games.Count == 0)
             {
-                if (showBusy) await Modern.Info("No PS3 games found on your PSNProfiles account.", "My PS3 Games");
+                if (showBusy) await Modern.Info("No PS3 games found on your PlayStation account.", "My PS3 Games");
                 return;
             }
-
-            // Only rebuild the list if something actually changed (avoids flicker on the common no-op refresh);
-            // either way, fill in any still-missing banners on the rows now on screen using the fresh cookie.
-            if (!SameLibrary(lib.Games))
-                ShowGames(lib.Games, select: showBusy);
-            StreamBanners(MyGames.ToList(), lib.Cookie, lib.Ua);
+            if (!SameLibrary(games))
+                ShowGames(games, select: showBusy);
+            StreamImages(MyGames.ToList());
         }
 
         private void ShowGames(IReadOnlyList<GameProgress> games, bool select)
@@ -91,18 +114,77 @@ namespace PS3TrophiesIsPerfect.ViewModels
             return true;
         }
 
-        private static void StreamBanners(IReadOnlyList<GameProgress> games, string cookie, string ua)
+        // ---- Per-game trophy detail --------------------------------------------------------------
+
+        /// <summary>Opens a game's trophy list (icons, descriptions, types, unlock times). Called from the view.</summary>
+        public async Task OpenGameAsync(GameProgress game)
         {
-            var disp = System.Windows.Application.Current.Dispatcher;
+            if (game == null) return;
+            SelectedGame = game;
+            GameTrophies.Clear();
+
+            IsBusy = true;
+            BusyText = "Loading trophies for " + game.Name + "…";
+            List<TrophyDetail> trophies;
+            try { trophies = await Task.Run(() => Psn.GetTrophies(game.GameId)); }
+            catch (PsnApi.AuthRequiredException)
+            {
+                IsBusy = false;
+                if (!await EnsureSignedInAsync()) { SelectedGame = null; return; }
+                IsBusy = true; BusyText = "Loading trophies for " + game.Name + "…";
+                try { trophies = await Task.Run(() => Psn.GetTrophies(game.GameId)); }
+                catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load trophies"); SelectedGame = null; return; }
+            }
+            catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load trophies"); SelectedGame = null; return; }
+            IsBusy = false;
+
+            foreach (var t in trophies)
+                GameTrophies.Add(t);
+            StreamTrophyIcons(trophies, game.GameId);
+        }
+
+        // ---- Auth + art ---------------------------------------------------------------------------
+
+        private async Task<bool> EnsureSignedInAsync()
+        {
+            string npsso = await Modern.PromptNpsso();
+            if (string.IsNullOrWhiteSpace(npsso)) return false;
+            IsBusy = true;
+            BusyText = "Linking your PlayStation account…";
+            try { await Task.Run(() => Psn.SignIn(npsso)); IsBusy = false; return true; }
+            catch (Exception ex)
+            {
+                IsBusy = false;
+                await Modern.Info("Couldn't link your account — the token may be wrong or expired.\n\n" + ex.Message,
+                    "PlayStation link failed");
+                return false;
+            }
+        }
+
+        private static void StreamImages(IReadOnlyList<GameProgress> games)
+        {
+            var disp = Application.Current.Dispatcher;
             var list = games.ToList();
             _ = Task.Run(() => System.Threading.Tasks.Parallel.ForEach(
-                list,
-                new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 6 },
+                list, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 6 },
                 g =>
                 {
-                    if (g.Icon != null) return; // already shown
-                    var img = PsnProfilesScraper.LoadBanner(g.IconUrl, g.GameId, cookie, ua);
+                    if (g.Icon != null) return;
+                    var img = ImageCache.Get(g.IconUrl, g.GameId);
                     if (img != null) disp.BeginInvoke(new Action(() => g.Icon = img));
+                }));
+        }
+
+        private static void StreamTrophyIcons(IReadOnlyList<TrophyDetail> trophies, string gameId)
+        {
+            var disp = Application.Current.Dispatcher;
+            var list = trophies.ToList();
+            _ = Task.Run(() => System.Threading.Tasks.Parallel.ForEach(
+                list, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 6 },
+                t =>
+                {
+                    var img = ImageCache.Get(t.IconUrl, gameId + "_" + t.Id);
+                    if (img != null) disp.BeginInvoke(new Action(() => t.Icon = img));
                 }));
         }
     }

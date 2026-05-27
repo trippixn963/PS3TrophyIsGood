@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Windows;
 
 namespace PS3TrophiesIsPerfect
@@ -13,6 +14,16 @@ namespace PS3TrophiesIsPerfect
             // hand-off, a shortcut, a parent process, etc.) instead of only when started from the folder.
             try { Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory); }
             catch { /* best effort */ }
+
+            // Sony's auth + trophy endpoints (and their image CDN) require TLS 1.2+. .NET 4.8 usually
+            // negotiates this, but pin it so HTTPS to PSN never silently fails on a stale default.
+            try
+            {
+                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+                ServicePointManager.SecurityProtocol |= (SecurityProtocolType)12288; // Tls13, if the OS supports it
+            }
+            catch { /* older OS without TLS 1.3 — TLS 1.2 alone is fine */ }
+
             base.OnStartup(e);
         }
     }

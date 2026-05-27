@@ -32,6 +32,13 @@ namespace PS3TrophiesIsPerfect.Services
         /// <summary>Cached "My PS3 Games" list (completed games never change, so this is safe to keep).</summary>
         public string MyGamesUser { get; set; } = "";
         public System.Collections.Generic.List<Models.GameProgress> MyGamesCache { get; set; } = new System.Collections.Generic.List<Models.GameProgress>();
+
+        /// <summary>PSN auth (for My PS3 Games / trophy detail, via Sony's own data). The NPSSO is kept so
+        /// tokens can be silently re-minted; all expire eventually and the user is re-prompted when they do.</summary>
+        public string PsnNpsso { get; set; } = "";
+        public string PsnAccessToken { get; set; } = "";
+        public string PsnRefreshToken { get; set; } = "";
+        public DateTime PsnAccessExpiryUtc { get; set; } = DateTime.MinValue;
         public System.Collections.Generic.List<DonorEntry> Donor { get; set; } = new System.Collections.Generic.List<DonorEntry>();
 
         private static string Dir =>

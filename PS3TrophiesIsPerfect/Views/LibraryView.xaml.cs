@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using PS3TrophiesIsPerfect.Models;
+using PS3TrophiesIsPerfect.ViewModels;
 
 namespace PS3TrophiesIsPerfect.Views
 {
@@ -9,13 +10,11 @@ namespace PS3TrophiesIsPerfect.Views
     {
         public LibraryView() => InitializeComponent();
 
-        private void Games_DoubleClick(object sender, MouseButtonEventArgs e)
+        // Double-clicking a game card opens that game's trophy detail (ignored for the trophy rows themselves).
+        private void Game_DoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if ((e.OriginalSource as FrameworkElement)?.DataContext is GameProgress g && !string.IsNullOrEmpty(g.Url))
-            {
-                try { System.Diagnostics.Process.Start(g.Url); }
-                catch { /* no browser / blocked */ }
-            }
+            if ((e.OriginalSource as FrameworkElement)?.DataContext is GameProgress g && DataContext is MainViewModel vm)
+                _ = vm.OpenGameAsync(g);
         }
     }
 }

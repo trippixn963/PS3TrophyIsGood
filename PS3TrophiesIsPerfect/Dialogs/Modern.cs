@@ -59,6 +59,65 @@ namespace PS3TrophiesIsPerfect.Dialogs
                 "e.g. https://psnprofiles.com/trophies/41027-pragmata/SomeUser",
                 "https://psnprofiles.com/trophies/…", "Scrape", initial);
 
+        /// <summary>Walks the user through getting their PSN NPSSO token and returns it (or null if cancelled).</summary>
+        public static async Task<string> PromptNpsso()
+        {
+            const string ssoUrl = "https://ca.account.sony.com/api/v1/ssocookie";
+
+            var panel = new StackPanel { MaxWidth = 460 };
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Your games and trophies come straight from PlayStation. To connect, paste a one-time "
+                     + "sign-in token (it stays on this PC and refreshes itself for ~2 months):",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 12),
+            });
+
+            panel.Children.Add(Step("1.", "Sign in to your account at playstation.com in any browser."));
+
+            var linkText = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(22, 0, 0, 8) };
+            linkText.Inlines.Add("In the SAME browser, open ");
+            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(ssoUrl))
+            {
+                NavigateUri = new Uri(ssoUrl),
+            };
+            link.RequestNavigate += (s, e) =>
+            {
+                try { System.Diagnostics.Process.Start(e.Uri.AbsoluteUri); } catch { }
+                e.Handled = true;
+            };
+            linkText.Inlines.Add(link);
+            var step2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 0) };
+            step2.Children.Add(new TextBlock { Text = "2.", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 0) });
+            step2.Children.Add(linkText);
+            panel.Children.Add(step2);
+
+            panel.Children.Add(Step("3.", "Copy the 64-character value after \"npsso\" and paste it below."));
+
+            var box = new TextBox { Margin = new Thickness(0, 8, 0, 0) };
+            ControlHelper.SetPlaceholderText(box, "Paste your npsso token");
+            box.Loaded += (s, e) => box.Focus();
+            panel.Children.Add(box);
+
+            var r = await new ContentDialog
+            {
+                Title = "Link your PlayStation account",
+                Content = panel,
+                PrimaryButtonText = "Link",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+            }.ShowAsync();
+            return r == ContentDialogResult.Primary ? box.Text?.Trim() : null;
+        }
+
+        private static StackPanel Step(string number, string text)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            row.Children.Add(new TextBlock { Text = number, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 0) });
+            row.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap });
+            return row;
+        }
+
         public static async Task<string> PromptText(string title, string label, string hint, string placeholder, string okText, string initial = "")
         {
             var box = new TextBox { Text = initial ?? string.Empty };
