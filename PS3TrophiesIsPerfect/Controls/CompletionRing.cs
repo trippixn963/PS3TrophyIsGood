@@ -8,9 +8,10 @@ namespace PS3TrophiesIsPerfect.Controls
     /// <summary>A circular completion indicator: a track ring plus an accent arc proportional to Percent.</summary>
     public sealed class CompletionRing : FrameworkElement
     {
+        // Matches the App.xaml brand palette (Accent #0188F5, Text #F0F2F5).
         private static readonly Brush TrackBrush = Frozen(Color.FromRgb(0x26, 0x26, 0x26));
-        private static readonly Brush AccentBrush = Frozen(Color.FromRgb(0x2F, 0x81, 0xF7));
-        private static readonly Brush TextBrush = Frozen(Color.FromRgb(0xF0, 0xF0, 0xF0));
+        private static readonly Brush AccentBrush = Frozen(Color.FromRgb(0x01, 0x88, 0xF5));
+        private static readonly Brush TextBrush = Frozen(Color.FromRgb(0xF0, 0xF2, 0xF5));
 
         public static readonly DependencyProperty PercentProperty = DependencyProperty.Register(
             nameof(Percent),

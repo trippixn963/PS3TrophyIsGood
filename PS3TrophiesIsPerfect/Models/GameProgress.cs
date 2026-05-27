@@ -15,21 +15,8 @@ namespace PS3TrophiesIsPerfect.Models
 
         public TrophyTypeCount(string asset, int count)
         {
-            Badge = Cached(asset);
+            Badge = TrophyBadges.ForAsset(asset);
             Count = count.ToString();
-        }
-
-        // The four badges are shared, frozen, embedded assets — load each once.
-        private static readonly Dictionary<string, ImageSource> _cache =
-            new Dictionary<string, ImageSource>();
-
-        private static ImageSource Cached(string asset)
-        {
-            if (!_cache.TryGetValue(asset, out var img))
-                _cache[asset] = img = ImageLoad.FromPack(
-                    "pack://application:,,,/Assets/TrophyTypes/" + asset + ".png"
-                );
-            return img;
         }
     }
 

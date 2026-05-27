@@ -24,33 +24,7 @@ namespace PS3TrophiesIsPerfect.Models
 
         public ImageSource Display => Icon ?? TypeBadge;
 
-        public ImageSource TypeBadge
-        {
-            get
-            {
-                string name;
-                switch (Type)
-                {
-                    case "P":
-                        name = "plat";
-                        break;
-                    case "G":
-                        name = "gold";
-                        break;
-                    case "S":
-                        name = "silver";
-                        break;
-                    case "B":
-                        name = "bronze";
-                        break;
-                    default:
-                        return null;
-                }
-                return Services.ImageLoad.FromPack(
-                    "pack://application:,,,/Assets/TrophyTypes/" + name + ".png"
-                );
-            }
-        }
+        public ImageSource TypeBadge => Services.TrophyBadges.ForCode(Type);
 
         public Brush MatchBrush
         {

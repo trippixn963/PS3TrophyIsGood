@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Media;
 using PS3TrophiesIsPerfect.Services;
@@ -84,13 +83,8 @@ namespace PS3TrophiesIsPerfect.Models
             return (days / 365) + (days < 730 ? " year ago" : " years ago");
         }
 
-        /// <summary>The trophy's type badge — a local embedded asset, instant. (PSN says "platinum"; the asset is "plat".)</summary>
-        public ImageSource TypeBadge =>
-            ImageLoad.FromPack(
-                "pack://application:,,,/Assets/TrophyTypes/"
-                    + (Type == "platinum" ? "plat" : Type ?? "bronze")
-                    + ".png"
-            );
+        /// <summary>The trophy's type badge — a shared embedded asset, instant.</summary>
+        public ImageSource TypeBadge => TrophyBadges.ForType(Type);
 
         /// <summary>The trophy graphic — downloaded from Sony's open CDN and cached, set after the list shows.</summary>
         private ImageSource _icon;

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Windows.Media;
 using PS3TrophiesIsPerfect.Services;
 
@@ -41,37 +40,6 @@ namespace PS3TrophiesIsPerfect.Models
         /// <summary>What the list shows: real artwork if loaded, otherwise the trophy-type badge.</summary>
         public ImageSource Display => Icon ?? TypeBadge;
 
-        // The four type badges are shared, frozen, embedded assets — load each once.
-        private static readonly Dictionary<string, ImageSource> _badgeCache =
-            new Dictionary<string, ImageSource>();
-        public ImageSource TypeBadge
-        {
-            get
-            {
-                string name;
-                switch (Type)
-                {
-                    case "P":
-                        name = "plat";
-                        break;
-                    case "G":
-                        name = "gold";
-                        break;
-                    case "S":
-                        name = "silver";
-                        break;
-                    case "B":
-                        name = "bronze";
-                        break;
-                    default:
-                        return null;
-                }
-                if (!_badgeCache.TryGetValue(name, out var img))
-                    _badgeCache[name] = img = ImageLoad.FromPack(
-                        "pack://application:,,,/Assets/TrophyTypes/" + name + ".png"
-                    );
-                return img;
-            }
-        }
+        public ImageSource TypeBadge => TrophyBadges.ForCode(Type);
     }
 }
