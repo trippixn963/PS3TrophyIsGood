@@ -34,6 +34,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ObservableCollection<ComparisonRow> Comparison { get; } = new ObservableCollection<ComparisonRow>();
         private List<DonorEntry> _donor = new List<DonorEntry>();
 
+        // --- my PS3 library (from the linked PSNProfiles account) ---
+        public ObservableCollection<GameProgress> MyGames { get; } = new ObservableCollection<GameProgress>();
+        private bool _hasMyGames;
+        public bool HasMyGames { get => _hasMyGames; set => Set(ref _hasMyGames, value); }
+
         private bool _hasDonor;
         public bool HasDonor { get => _hasDonor; set => Set(ref _hasDonor, value); }
 
@@ -114,6 +119,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ICommand ClearCommand { get; }
         public ICommand ClearDonorCommand { get; }
         public ICommand SetMyUserCommand { get; }
+        public ICommand MyGamesCommand { get; }
 
         public MainViewModel()
         {
@@ -124,6 +130,33 @@ namespace PS3TrophiesIsPerfect.ViewModels
             ClearCommand = new RelayCommand(async () => await ClearAllAsync(), () => _doc.IsOpen && !IsBusy);
             ClearDonorCommand = new RelayCommand(ClearDonor);
             SetMyUserCommand = new RelayCommand(async () => await SetMyUserAsync(), () => !IsBusy);
+            MyGamesCommand = new RelayCommand(async () => await LoadMyGamesAsync(), () => !IsBusy);
+        }
+
+        private async Task LoadMyGamesAsync()
+        {
+            if (!HasMyUser)
+            {
+                await SetMyUserAsync();
+                if (!HasMyUser) return;
+            }
+            IsBusy = true;
+            BusyText = "Fetching your PS3 games from PSNProfiles…";
+            List<GameProgress> games;
+            try { games = await Task.Run(() => PsnProfilesScraper.FetchPs3Games(MyPsnUser)); }
+            catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't fetch games"); return; }
+            IsBusy = false;
+
+            MyGames.Clear();
+            foreach (var g in games.OrderByDescending(g => g.Percent).ThenBy(g => g.Name))
+                MyGames.Add(g);
+            if (MyGames.Count == 0)
+            {
+                await Modern.Info("No PS3 games found on your PSNProfiles account.", "My PS3 Games");
+                return;
+            }
+            HasMyGames = true;
+            SelectedTab = 2;
         }
 
         /// <summary>Called once the window is loaded: start FlareSolverr and reopen the last folder.</summary>

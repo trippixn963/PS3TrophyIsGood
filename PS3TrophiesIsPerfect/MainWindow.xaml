@@ -131,6 +131,13 @@
                         <TextBlock Text="Clear" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
+                <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding MyGamesCommand}"
+                        ToolTip="Fetch your PS3 games + completion from your linked PSNProfiles account">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:FontIcon Glyph="&#xE7FC;" FontSize="16" Margin="0,0,8,0" />
+                        <TextBlock Text="My PS3 Games" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
 
                 <!-- Linked PSN account (avatar + name, persisted); click to set/change. -->
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0,0,8,0"
@@ -379,6 +386,39 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- My PS3 library (from the linked PSNProfiles account) -->
+                <TabItem Header="My PS3 Games" Visibility="{Binding HasMyGames, Converter={StaticResource B2V}}">
+                    <Grid Margin="0,8,0,0">
+                        <Border CornerRadius="12" Background="{StaticResource Card}"
+                                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                            <DataGrid x:Name="GamesGrid" Style="{StaticResource ListGrid}" ItemsSource="{Binding MyGames}"
+                                      MouseDoubleClick="GamesGrid_DoubleClick">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Game" Binding="{Binding Name}" Width="*" />
+                                    <DataGridTextColumn Header="Trophies" Binding="{Binding CountText}" Width="200" />
+                                    <DataGridTemplateColumn Header="Completion" Width="280">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel VerticalAlignment="Center" Margin="4,0,12,0">
+                                                    <TextBlock Text="{Binding PercentText}" FontSize="12" Margin="0,0,0,5" />
+                                                    <ProgressBar Value="{Binding Percent}" Maximum="100" Height="4"
+                                                                 Foreground="{StaticResource Accent}" Background="#2A2A2A" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </Border>
                     </Grid>
                 </TabItem>

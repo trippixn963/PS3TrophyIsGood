@@ -97,6 +97,15 @@ namespace PS3TrophiesIsPerfect
                 await Vm.EditRow(row);
         }
 
+        private void GamesGrid_DoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (GamesGrid.SelectedItem is GameProgress g && !string.IsNullOrEmpty(g.Url))
+            {
+                try { System.Diagnostics.Process.Start(g.Url); }
+                catch { /* no browser / blocked */ }
+            }
+        }
+
         private void Grid_RightDown(object sender, MouseButtonEventArgs e)
         {
             DependencyObject dep = e.OriginalSource as DependencyObject;
