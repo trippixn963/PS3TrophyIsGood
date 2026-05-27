@@ -41,6 +41,26 @@ The lineage: darkautism wrote the original (Chinese) PS3 trophy editor and, cruc
 
 > The save-file engine — `TROPHYParser` / `BigEndianTool`, the part that actually reads and writes the encrypted trophy format — is darkautism's original work and is used **completely unchanged.** That was the hard part, and it's entirely his. See [Credits](#credits).
 
+## Screenshots
+
+<div align="center">
+
+**Trophies** — the editable trophy list with real artwork, unlock times and per-gap spacing.
+
+<img src="PS3TrophiesIsPerfect/Assets/screenshots/trophies.png" alt="Trophies view" width="85%" />
+
+**Comparison** — a merged diff of your run against the donor's, with a gap verdict per trophy.
+
+<img src="PS3TrophiesIsPerfect/Assets/screenshots/comparison.png" alt="Comparison view" width="85%" />
+
+**My PS3 Games** — your PS3 library from Sony's own data: art, trophy-type counts and completion.
+
+<img src="PS3TrophiesIsPerfect/Assets/screenshots/library.png" alt="My PS3 Games view" width="85%" />
+
+<sub>(account and profile names redacted)</sub>
+
+</div>
+
 ## Features
 
 - **Modern Fluent dark UI** — game icon + title + completion-percentage ring, color-coded rows (earned / synced / locked), filter box, sortable columns.
