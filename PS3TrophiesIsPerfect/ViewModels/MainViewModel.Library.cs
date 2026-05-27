@@ -13,18 +13,39 @@ using PS3TrophiesIsPerfect.Services;
 namespace PS3TrophiesIsPerfect.ViewModels
 {
     // "My PS3 Games": the linked PlayStation account's PS3 library + per-game trophy detail, from Sony's
-    // own data (open image CDN, exact unlock times). The list is cached and shown instantly, then refreshed;
-    // banners and trophy icons stream in (parallel + disk-cached forever, since completed games never change).
+    // own data (open image CDN, exact unlock times, rarity, DLC groups). Cached + shown instantly + refreshed;
+    // images stream in (parallel + disk-cached forever, since completed games never change).
     public sealed partial class MainViewModel
     {
         private PsnApi _psnApi;
         private PsnApi Psn => _psnApi ?? (_psnApi = new PsnApi(Settings));
+
+        // Full sets behind the filtered/sorted views the UI binds to.
+        private List<GameProgress> _allMyGames = new List<GameProgress>();
+        private List<TrophyDetail> _allTrophies = new List<TrophyDetail>();
 
         public ObservableCollection<GameProgress> MyGames { get; } = new ObservableCollection<GameProgress>();
         public ObservableCollection<TrophyDetail> GameTrophies { get; } = new ObservableCollection<TrophyDetail>();
 
         private bool _hasMyGames;
         public bool HasMyGames { get => _hasMyGames; set => Set(ref _hasMyGames, value); }
+
+        // ---- Games-list filter + sort ----
+        public string[] LibrarySorts { get; } = { "Completion", "Name", "Recent" };
+        private string _librarySort = "Completion";
+        public string LibrarySort { get => _librarySort; set { Set(ref _librarySort, value); ApplyGamesView(); } }
+
+        private string _libraryFilter = "";
+        public string LibraryFilter { get => _libraryFilter; set { Set(ref _libraryFilter, value); ApplyGamesView(); } }
+
+        // ---- Trophy-detail filter + sort ----
+        public string[] TrophyShowOptions { get; } = { "All", "Earned", "Unearned" };
+        private string _trophyShow = "All";
+        public string TrophyShow { get => _trophyShow; set { Set(ref _trophyShow, value); ApplyTrophyView(); } }
+
+        public string[] TrophyDetailSorts { get; } = { "Order", "Rarest" };
+        private string _trophyDetailSort = "Order";
+        public string TrophyDetailSort { get => _trophyDetailSort; set { Set(ref _trophyDetailSort, value); ApplyTrophyView(); } }
 
         // Master-detail: a selected game switches the tab from the games list to that game's trophy list.
         private GameProgress _selectedGame;
@@ -38,7 +59,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
         private ICommand _backToGamesCommand;
         public ICommand BackToGamesCommand => _backToGamesCommand ??
-            (_backToGamesCommand = new RelayCommand(() => { GameTrophies.Clear(); SelectedGame = null; }));
+            (_backToGamesCommand = new RelayCommand(() => { GameTrophies.Clear(); _allTrophies = new List<TrophyDetail>(); SelectedGame = null; }));
 
         // ---- Games list --------------------------------------------------------------------------
 
@@ -46,16 +67,13 @@ namespace PS3TrophiesIsPerfect.ViewModels
         {
             SelectedGame = null;
             SelectedTab = 2;
-            // Only trust a PSN-shaped cache (npCommunicationIds look like "NPWR…"); ignore any old
-            // PSNProfiles-format cache from before this feature moved to Sony's data.
             var cache = Settings.MyGamesCache;
             bool validCache = cache != null && cache.Count > 0
                 && cache[0].GameId != null && cache[0].GameId.StartsWith("NPWR", StringComparison.OrdinalIgnoreCase);
             if (validCache)
             {
-                // Instant: show the cached list + cached art (no round-trip), then refresh quietly.
                 ShowGames(cache, select: true);
-                StreamImages(MyGames.ToList());
+                StreamImages(_allMyGames);
                 _ = RefreshGamesLive(showBusy: false);
             }
             else
@@ -72,7 +90,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             catch (PsnApi.AuthRequiredException)
             {
                 if (showBusy) IsBusy = false;
-                if (!await EnsureSignedInAsync()) return; // keep showing whatever we already had
+                if (!await EnsureSignedInAsync()) return;
                 if (showBusy) { IsBusy = true; BusyText = "Loading your PS3 games from PlayStation…"; }
                 try { games = await Task.Run(() => Psn.GetPs3Games()); }
                 catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load games"); return; }
@@ -80,7 +98,6 @@ namespace PS3TrophiesIsPerfect.ViewModels
             catch (Exception ex) { if (showBusy) IsBusy = false; await Modern.Info(ex.Message, "Couldn't load games"); return; }
             if (showBusy) IsBusy = false;
 
-            // Cache forever — completed games are immutable.
             Settings.MyGamesCache = games;
             Settings.Save();
 
@@ -91,22 +108,36 @@ namespace PS3TrophiesIsPerfect.ViewModels
             }
             if (!SameLibrary(games))
                 ShowGames(games, select: showBusy);
-            StreamImages(MyGames.ToList());
+            StreamImages(_allMyGames);
         }
 
         private void ShowGames(IReadOnlyList<GameProgress> games, bool select)
         {
-            MyGames.Clear();
-            foreach (var g in games.OrderByDescending(g => g.Percent).ThenBy(g => g.Name))
-                MyGames.Add(g);
-            HasMyGames = MyGames.Count > 0;
+            _allMyGames = games.ToList();
+            ApplyGamesView();
             if (select && HasMyGames) SelectedTab = 2;
+        }
+
+        private void ApplyGamesView()
+        {
+            MyGames.Clear();
+            IEnumerable<GameProgress> g = _allMyGames;
+            if (!string.IsNullOrWhiteSpace(_libraryFilter))
+                g = g.Where(x => (x.Name ?? "").IndexOf(_libraryFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+            switch (_librarySort)
+            {
+                case "Name": g = g.OrderBy(x => x.Name); break;
+                case "Recent": g = g.OrderByDescending(x => x.LastUpdated).ThenBy(x => x.Name); break;
+                default: g = g.OrderByDescending(x => x.Percent).ThenBy(x => x.Name); break;
+            }
+            foreach (var x in g) MyGames.Add(x);
+            HasMyGames = _allMyGames.Count > 0;
         }
 
         private bool SameLibrary(List<GameProgress> fresh)
         {
-            if (fresh.Count != MyGames.Count) return false;
-            var cur = MyGames.Where(g => g.GameId != null).ToDictionary(g => g.GameId);
+            if (fresh.Count != _allMyGames.Count) return false;
+            var cur = _allMyGames.Where(g => g.GameId != null).ToDictionary(g => g.GameId);
             foreach (var g in fresh)
                 if (g.GameId == null || !cur.TryGetValue(g.GameId, out var c)
                     || c.Earned != g.Earned || c.Total != g.Total || c.Percent != g.Percent
@@ -118,7 +149,6 @@ namespace PS3TrophiesIsPerfect.ViewModels
 
         // ---- Per-game trophy detail --------------------------------------------------------------
 
-        /// <summary>Opens a game's trophy list (icons, descriptions, types, unlock times). Called from the view.</summary>
         public async Task OpenGameAsync(GameProgress game)
         {
             if (game == null) return;
@@ -140,9 +170,34 @@ namespace PS3TrophiesIsPerfect.ViewModels
             catch (Exception ex) { IsBusy = false; await Modern.Info(ex.Message, "Couldn't load trophies"); SelectedGame = null; return; }
             IsBusy = false;
 
-            foreach (var t in trophies)
-                GameTrophies.Add(t);
-            StreamTrophyIcons(trophies, game.GameId);
+            _allTrophies = trophies;
+            _trophyShow = "All"; Raise(nameof(TrophyShow));
+            _trophyDetailSort = "Order"; Raise(nameof(TrophyDetailSort));
+            ApplyTrophyView();
+            StreamTrophyIcons(_allTrophies, game.GameId);
+        }
+
+        private void ApplyTrophyView()
+        {
+            // Group the trophy list into "Base Game" / DLC sections (set once; survives Clear/Add).
+            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(GameTrophies);
+            if (view != null && view.CanGroup && view.GroupDescriptions.Count == 0)
+                view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(TrophyDetail.GroupName)));
+
+            GameTrophies.Clear();
+            IEnumerable<TrophyDetail> t = _allTrophies;
+            if (_trophyShow == "Earned") t = t.Where(x => x.Earned);
+            else if (_trophyShow == "Unearned") t = t.Where(x => !x.Earned);
+
+            // Always keep groups contiguous (base game first, then DLC) so the section headers render right;
+            // order WITHIN each group by rarity or by trophy order.
+            Func<TrophyDetail, int> rank = x => x.GroupId == "default" ? 0 : 1;
+            var ordered = t.OrderBy(rank).ThenBy(x => x.GroupId, StringComparer.Ordinal);
+            t = _trophyDetailSort == "Rarest"
+                ? ordered.ThenBy(x => x.EarnedRate <= 0 ? double.MaxValue : x.EarnedRate).ThenBy(x => x.Id)
+                : ordered.ThenBy(x => x.Id);
+
+            foreach (var x in t) GameTrophies.Add(x);
         }
 
         // ---- Auth + art ---------------------------------------------------------------------------
@@ -185,6 +240,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 list, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 6 },
                 t =>
                 {
+                    if (t.Icon != null) return;
                     var img = ImageCache.Get(t.IconUrl, gameId + "_" + t.Id);
                     if (img != null) disp.BeginInvoke(new Action(() => t.Icon = img));
                 }));

@@ -72,6 +72,11 @@ namespace PS3TrophiesIsPerfect.Services
                             continue;
 
                         var defined = t.TryGetProperty("definedTrophies", out var d) ? d : default;
+                        DateTime lastUpdated = DateTime.MinValue;
+                        if (t.TryGetProperty("lastUpdatedDateTime", out var lu) && lu.ValueKind == JsonValueKind.String)
+                            DateTime.TryParse(lu.GetString(), null,
+                                System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+                                out lastUpdated);
                         games.Add(new GameProgress
                         {
                             Name = Str(t, "trophyTitleName"),
@@ -85,6 +90,7 @@ namespace PS3TrophiesIsPerfect.Services
                             Silver = Int(defined, "silver"),
                             Bronze = Int(defined, "bronze"),
                             HasDlc = t.TryGetProperty("hasTrophyGroups", out var h) && h.ValueKind == JsonValueKind.True,
+                            LastUpdated = lastUpdated,
                         });
                     }
                     if (pageCount == 0) break; // no more pages
@@ -101,13 +107,30 @@ namespace PS3TrophiesIsPerfect.Services
             string token = AccessToken();
             const string svc = "npServiceName=trophy"; // PS3/PS4/Vita use "trophy"
 
-            // 1) Definitions — names, descriptions, icons, types.
+            // 0) Trophy groups — for "Base Game" / DLC section names.
+            var groupName = new Dictionary<string, string>();
+            try
+            {
+                string groups = ApiGet($"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups?{svc}", token);
+                using (var doc = JsonDocument.Parse(groups))
+                    if (doc.RootElement.TryGetProperty("trophyGroups", out var gs))
+                        foreach (var g in gs.EnumerateArray())
+                        {
+                            string id = Str(g, "trophyGroupId");
+                            if (id == null) continue;
+                            groupName[id] = id == "default" ? "Base Game" : (Str(g, "trophyGroupName") ?? "DLC");
+                        }
+            }
+            catch { /* no group info — everything becomes Base Game below */ }
+
+            // 1) Definitions — names, descriptions, icons, types, which group each belongs to.
             var byId = new Dictionary<int, TrophyDetail>();
             string defs = ApiGet($"{ApiBase}/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}", token);
             using (var doc = JsonDocument.Parse(defs))
                 foreach (var tr in doc.RootElement.GetProperty("trophies").EnumerateArray())
                 {
                     int id = Int(tr, "trophyId");
+                    string gid = Str(tr, "trophyGroupId") ?? "default";
                     byId[id] = new TrophyDetail
                     {
                         Id = id,
@@ -115,10 +138,12 @@ namespace PS3TrophiesIsPerfect.Services
                         Name = Str(tr, "trophyName") ?? "Hidden trophy",
                         Detail = Str(tr, "trophyDetail") ?? "",
                         IconUrl = Str(tr, "trophyIconUrl"),
+                        GroupId = gid,
+                        GroupName = groupName.TryGetValue(gid, out var gn) ? gn : (gid == "default" ? "Base Game" : "DLC"),
                     };
                 }
 
-            // 2) This account's earned status + timestamps — merge onto the definitions by trophy id.
+            // 2) This account's earned status + timestamps + rarity — merge onto the definitions by trophy id.
             string earned = ApiGet($"{ApiBase}/users/me/npCommunicationIds/{npCommunicationId}/trophyGroups/all/trophies?{svc}", token);
             using (var doc = JsonDocument.Parse(earned))
                 foreach (var tr in doc.RootElement.GetProperty("trophies").EnumerateArray())
@@ -126,6 +151,7 @@ namespace PS3TrophiesIsPerfect.Services
                     int id = Int(tr, "trophyId");
                     if (!byId.TryGetValue(id, out var d)) continue;
                     d.Earned = tr.TryGetProperty("earned", out var e) && e.ValueKind == JsonValueKind.True;
+                    d.EarnedRate = Dbl(tr, "trophyEarnedRate");
                     if (d.Earned && tr.TryGetProperty("earnedDateTime", out var dt) && dt.ValueKind == JsonValueKind.String
                         && DateTime.TryParse(dt.GetString(), null,
                             System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
@@ -253,6 +279,17 @@ namespace PS3TrophiesIsPerfect.Services
         private static int Int(JsonElement e, string name) =>
             e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v)
                 && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
+
+        // trophyEarnedRate comes back as a string like "52.30" (sometimes a number) — accept either.
+        private static double Dbl(JsonElement e, string name)
+        {
+            if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v)) return 0;
+            if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
+            if (v.ValueKind == JsonValueKind.String
+                && double.TryParse(v.GetString(), System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var s)) return s;
+            return 0;
+        }
 
         private static int SumTrophies(JsonElement title, string name)
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
@@ -41,6 +42,9 @@ namespace PS3TrophiesIsPerfect.Models
         public int Silver { get; set; }
         public int Bronze { get; set; }
         public bool HasDlc { get; set; }
+
+        /// <summary>When trophies for this game were last earned/updated — for the "Recent" sort.</summary>
+        public DateTime LastUpdated { get; set; }
 
         [JsonIgnore] public string CountText => Earned + " / " + Total + " trophies";
         [JsonIgnore] public string PercentText => Percent + "%";

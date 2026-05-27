@@ -9,70 +9,88 @@
         <Border Visibility="{Binding NotViewingGame, Converter={StaticResource B2V}}"
                 CornerRadius="12" Background="{StaticResource Card}"
                 BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                <ItemsControl ItemsSource="{Binding MyGames}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border CornerRadius="10" Background="#1C1C1C" BorderBrush="{StaticResource CardBorder}"
-                                    BorderThickness="1" Margin="0,0,0,8" Padding="10" Cursor="Hand"
-                                    ToolTip="Double-click to view trophies">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+            <DockPanel>
+                <!-- Filter + sort -->
+                <Border DockPanel.Dock="Top" Background="#1C1C1C" CornerRadius="12,12,0,0"
+                        Padding="14,8" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <TextBox Width="240" HorizontalAlignment="Left"
+                                 Text="{Binding LibraryFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 ui:ControlHelper.PlaceholderText="Filter games…" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="Sort" VerticalAlignment="Center" Margin="0,0,8,0"
+                                       Foreground="{StaticResource TextMuted}" FontSize="12" />
+                            <ComboBox Width="140" VerticalAlignment="Center"
+                                      ItemsSource="{Binding LibrarySorts}" SelectedItem="{Binding LibrarySort}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
-                                    <Border Grid.Column="0" Width="96" Height="54" CornerRadius="6"
-                                            Background="#10FFFFFF" ClipToBounds="True">
-                                        <Grid>
-                                            <ui:FontIcon Glyph="&#xE7FC;" FontSize="22" Foreground="{StaticResource TextMuted}" />
-                                            <Image Source="{Binding Icon}" Stretch="UniformToFill"
-                                                   RenderOptions.BitmapScalingMode="HighQuality" />
-                                        </Grid>
-                                    </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                    <ItemsControl ItemsSource="{Binding MyGames}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="10" Background="#1C1C1C" BorderBrush="{StaticResource CardBorder}"
+                                        BorderThickness="1" Margin="0,0,0,8" Padding="10" Cursor="Hand"
+                                        ToolTip="Double-click to view trophies">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <TextBlock Text="{Binding CountText}" Foreground="{StaticResource TextMuted}"
-                                                       FontSize="12" VerticalAlignment="Center" />
-                                            <Border Visibility="{Binding HasDlc, Converter={StaticResource B2V}}"
-                                                    Background="#2A2A2A" CornerRadius="4" Padding="6,1"
-                                                    Margin="8,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="DLC" FontSize="10" Foreground="{StaticResource TextMuted}" />
-                                            </Border>
+                                        <Border Grid.Column="0" Width="96" Height="54" CornerRadius="6"
+                                                Background="#10FFFFFF" ClipToBounds="True">
+                                            <Grid>
+                                                <ui:FontIcon Glyph="&#xE7FC;" FontSize="22" Foreground="{StaticResource TextMuted}" />
+                                                <Image Source="{Binding Icon}" Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Grid>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBlock Text="{Binding CountText}" Foreground="{StaticResource TextMuted}"
+                                                           FontSize="12" VerticalAlignment="Center" />
+                                                <Border Visibility="{Binding HasDlc, Converter={StaticResource B2V}}"
+                                                        Background="#2A2A2A" CornerRadius="4" Padding="6,1"
+                                                        Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="DLC" FontSize="10" Foreground="{StaticResource TextMuted}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <ItemsControl ItemsSource="{Binding TypeCounts}" Margin="0,6,0,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                                            <Image Source="{Binding Badge}" Width="16" Height="16"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                                            <TextBlock Text="{Binding Count}" Margin="5,0,0,0" FontSize="12"
+                                                                       VerticalAlignment="Center" Foreground="{StaticResource Text}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </StackPanel>
-                                        <ItemsControl ItemsSource="{Binding TypeCounts}" Margin="0,6,0,0">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
-                                                        <Image Source="{Binding Badge}" Width="16" Height="16"
-                                                               RenderOptions.BitmapScalingMode="HighQuality" />
-                                                        <TextBlock Text="{Binding Count}" Margin="5,0,0,0" FontSize="12"
-                                                                   VerticalAlignment="Center" Foreground="{StaticResource Text}" />
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
 
-                                    <StackPanel Grid.Column="2" Width="200" VerticalAlignment="Center" Margin="8,0,4,0">
-                                        <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource Accent}"
-                                                   FontWeight="SemiBold" HorizontalAlignment="Right" Margin="0,0,0,5" />
-                                        <ProgressBar Value="{Binding Percent}" Maximum="100" Height="6"
-                                                     Foreground="{StaticResource Accent}" Background="#2A2A2A" />
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+                                        <StackPanel Grid.Column="2" Width="200" VerticalAlignment="Center" Margin="8,0,4,0">
+                                            <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource Accent}"
+                                                       FontWeight="SemiBold" HorizontalAlignment="Right" Margin="0,0,0,5" />
+                                            <ProgressBar Value="{Binding Percent}" Maximum="100" Height="6"
+                                                         Foreground="{StaticResource Accent}" Background="#2A2A2A" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
         <!-- ============ GAME DETAIL (trophy list) ============ -->
@@ -80,7 +98,7 @@
                 CornerRadius="12" Background="{StaticResource Card}"
                 BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
             <DockPanel>
-                <!-- Header: back + banner + title + completion -->
+                <!-- Header -->
                 <Border DockPanel.Dock="Top" Background="#1C1C1C" CornerRadius="12,12,0,0" Padding="12">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -116,21 +134,6 @@
                                     <TextBlock Text="DLC" FontSize="10" Foreground="{StaticResource TextMuted}" />
                                 </Border>
                             </StackPanel>
-                            <ItemsControl ItemsSource="{Binding SelectedGame.TypeCounts}" Margin="0,6,0,0">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
-                                            <Image Source="{Binding Badge}" Width="16" Height="16"
-                                                   RenderOptions.BitmapScalingMode="HighQuality" />
-                                            <TextBlock Text="{Binding Count}" Margin="5,0,0,0" FontSize="12"
-                                                       VerticalAlignment="Center" Foreground="{StaticResource Text}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
                         </StackPanel>
 
                         <StackPanel Grid.Column="3" Width="180" VerticalAlignment="Center">
@@ -142,9 +145,34 @@
                     </Grid>
                 </Border>
 
-                <!-- Trophies -->
+                <!-- Show / sort bar -->
+                <Border DockPanel.Dock="Top" Padding="14,8"
+                        BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="Show" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{StaticResource TextMuted}" FontSize="12" />
+                        <ComboBox Width="120" VerticalAlignment="Center" Margin="0,0,16,0"
+                                  ItemsSource="{Binding TrophyShowOptions}" SelectedItem="{Binding TrophyShow}" />
+                        <TextBlock Text="Sort" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{StaticResource TextMuted}" FontSize="12" />
+                        <ComboBox Width="120" VerticalAlignment="Center"
+                                  ItemsSource="{Binding TrophyDetailSorts}" SelectedItem="{Binding TrophyDetailSort}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Trophies, grouped into Base Game / DLC sections -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
                     <ItemsControl ItemsSource="{Binding GameTrophies}">
+                        <ItemsControl.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                                   Foreground="{StaticResource TextMuted}" Margin="2,10,0,8" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ItemsControl.GroupStyle>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border CornerRadius="10" Background="#1C1C1C" BorderBrush="{StaticResource CardBorder}"
@@ -156,7 +184,6 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Trophy icon + type badge -->
                                         <Grid Grid.Column="0">
                                             <Border Width="60" Height="60" CornerRadius="6"
                                                     Background="#10FFFFFF" ClipToBounds="True">
@@ -172,13 +199,18 @@
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
                                             <TextBlock Text="{Binding Detail}" Foreground="{StaticResource TextMuted}"
                                                        FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                <TextBlock Text="{Binding RarityLabel}" Foreground="{Binding RarityBrush}"
+                                                           FontSize="11" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding RarityText}" Foreground="{StaticResource TextMuted}"
+                                                           FontSize="11" Margin="6,0,0,0" />
+                                            </StackPanel>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="2" VerticalAlignment="Center" MinWidth="150">
-                                            <TextBlock Text="{Binding TypeText}" Foreground="{StaticResource TextMuted}"
-                                                       FontSize="11" HorizontalAlignment="Right" />
-                                            <TextBlock Text="{Binding EarnedText}" FontSize="12" Margin="0,3,0,0"
-                                                       HorizontalAlignment="Right" />
+                                            <TextBlock Text="{Binding EarnedText}" FontSize="12" HorizontalAlignment="Right" />
+                                            <TextBlock Text="{Binding EarnedAgo}" Foreground="{StaticResource TextMuted}"
+                                                       FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Right" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
