@@ -69,6 +69,15 @@ namespace PS3TrophiesIsPerfect.Services
             DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             long ToUnix(DateTime dt) => (long)(dt - epoch).TotalSeconds;
 
+            // Never date the run before it was provably earnable. The donor is a real player, so their
+            // earliest unlock is on/after the game's release and after their account existed — a safe floor.
+            // Clamp the chosen start up to it so no trophy can ever predate the game (the #1 instant tell).
+            DateTime earnableFloor = epoch.AddSeconds(seq[0].Value).Date;
+            if (earnableFloor > DateTime.Today)
+                earnableFloor = DateTime.Today;
+            if (startDate < earnableFloor)
+                startDate = earnableFloor;
+
             // ---- Phase 1: per-step "play time" between consecutive trophies (a continuous timeline). -------
             // Bursts keep the donor's exact gap; everything else is the donor's gap plus a few minutes.
             var add = new long[n];
