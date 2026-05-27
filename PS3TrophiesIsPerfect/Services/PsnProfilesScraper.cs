@@ -216,6 +216,7 @@ namespace PS3TrophiesIsPerfect.Services
                 string file = Path.Combine(dir, cacheKey + ".png");
                 if (!File.Exists(file))
                 {
+                    if (string.IsNullOrEmpty(cookie)) return null; // cache-only pass; no live cookie to download with
                     using (var wc = new WebClient())
                     {
                         wc.Headers.Add("User-Agent", ua);

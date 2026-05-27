@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using System.Windows.Media;
 
 namespace PS3TrophiesIsPerfect.Models
@@ -15,11 +16,12 @@ namespace PS3TrophiesIsPerfect.Models
         public int Total { get; set; }
         public int Percent { get; set; }
 
-        public string CountText => Earned + " / " + Total + " trophies";
-        public string PercentText => Percent + "%";
+        [JsonIgnore] public string CountText => Earned + " / " + Total + " trophies";
+        [JsonIgnore] public string PercentText => Percent + "%";
 
-        /// <summary>The game banner — set after the list shows (downloaded in the background + cached).</summary>
+        /// <summary>The game banner — set after the list shows (downloaded in the background + cached on disk).</summary>
         private ImageSource _icon;
+        [JsonIgnore]
         public ImageSource Icon
         {
             get => _icon;
