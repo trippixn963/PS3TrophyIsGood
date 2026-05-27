@@ -61,11 +61,16 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="DarkRow" TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
         <Style x:Key="ListGrid" TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False" />
             <Setter Property="IsReadOnly" Value="True" />
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="{StaticResource Card}" />
             <Setter Property="Foreground" Value="{StaticResource Text}" />
+            <Setter Property="RowStyle" Value="{StaticResource DarkRow}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="RowBackground" Value="Transparent" />
             <Setter Property="GridLinesVisibility" Value="None" />
@@ -176,7 +181,9 @@
                             <DataGrid x:Name="Grid" Style="{StaticResource ListGrid}" ItemsSource="{Binding Trophies}"
                                       MouseDoubleClick="Grid_DoubleClick" PreviewMouseRightButtonDown="Grid_RightDown">
                                 <DataGrid.RowStyle>
-                                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Got}" Value="False">
                                                 <Setter Property="Opacity" Value="0.4" />
