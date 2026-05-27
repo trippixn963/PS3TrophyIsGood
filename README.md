@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="PS3TrophiesIsPerfect/Assets/banner.png" alt="PS3TrophiesIsPerfect — PS3 save & trophies manipulation app" width="100%" />
+
 # PS3TrophiesIsPerfect
 
 A ground-up redesign of a PlayStation 3 trophy timestamp editor — modern Fluent UI, PSNProfiles cloning, and a legit-pacing relocation engine.

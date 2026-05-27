@@ -39,8 +39,16 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Custom title bar -->
-        <Border Grid.Row="0" Background="{StaticResource HeaderBg}">
+        <!-- Custom title bar (with a blue light-streak accent line, echoing the banner) -->
+        <Border Grid.Row="0" Background="{StaticResource HeaderBg}" BorderThickness="0,0,0,2">
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#2A8BFF" Offset="0" />
+                    <GradientStop Color="#5FA8FF" Offset="0.22" />
+                    <GradientStop Color="#0061C2" Offset="0.55" />
+                    <GradientStop Color="#0008090C" Offset="1" />
+                </LinearGradientBrush>
+            </Border.BorderBrush>
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
                     <Image Source="Assets/logo.png" Width="22" Height="22" Margin="0,0,8,0"
