@@ -75,7 +75,7 @@ namespace PS3TrophiesIsPerfect.Dialogs
 
             panel.Children.Add(Step("1.", "Sign in to your account at playstation.com in any browser."));
 
-            var linkText = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(22, 0, 0, 8) };
+            var linkText = new TextBlock { TextWrapping = TextWrapping.Wrap };
             linkText.Inlines.Add("In the SAME browser, open ");
             var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(ssoUrl))
             {
@@ -87,7 +87,7 @@ namespace PS3TrophiesIsPerfect.Dialogs
                 e.Handled = true;
             };
             linkText.Inlines.Add(link);
-            var step2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 0) };
+            var step2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
             step2.Children.Add(new TextBlock { Text = "2.", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 0) });
             step2.Children.Add(linkText);
             panel.Children.Add(step2);
