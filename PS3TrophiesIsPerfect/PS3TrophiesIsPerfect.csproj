@@ -17,8 +17,8 @@
 
   <ItemGroup>
     <!-- pfdtool (decrypt/encrypt) copied next to the exe so the working dir resolves "pfdtool\". -->
-    <Content Include="..\PS3TrophyIsGood\pfdtool\**\*.*"
-             Link="pfdtool\%(RecursiveDir)%(Filename)%(Extension)">
+    <None Remove="pfdtool\**\*.*" />
+    <Content Include="pfdtool\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

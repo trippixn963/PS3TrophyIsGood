@@ -1,3 +1,0 @@
-# ListViewEx
-A Custom ListView
-
