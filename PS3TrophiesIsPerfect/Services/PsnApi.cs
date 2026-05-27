@@ -9,6 +9,18 @@ using PS3TrophiesIsPerfect.Models;
 
 namespace PS3TrophiesIsPerfect.Services
 {
+    /// <summary>The signed-in account's overall trophy standing (across every platform), for the profile chip.</summary>
+    public sealed class PsnSummary
+    {
+        public int Level { get; set; }
+        public int Platinum { get; set; }
+        public int Gold { get; set; }
+        public int Silver { get; set; }
+        public int Bronze { get; set; }
+
+        public int Total => Platinum + Gold + Silver + Bronze;
+    }
+
     /// <summary>
     /// Talks to Sony's own (undocumented but stable) PSN endpoints for trophy data — the same ones the
     /// PlayStation app uses. Auth is the standard NPSSO → access-code → token flow; tokens are cached in
@@ -123,6 +135,38 @@ namespace PS3TrophiesIsPerfect.Services
                 }
             }
             return games;
+        }
+
+        /// <summary>The account's overall trophy level + total earned trophies by type, across all platforms.</summary>
+        public PsnSummary GetTrophySummary()
+        {
+            string token = AccessToken();
+            string json = ApiGet($"{ApiBase}/users/me/trophySummary", token);
+            using (var doc = JsonDocument.Parse(json))
+            {
+                var r = doc.RootElement;
+                var earned = r.TryGetProperty("earnedTrophies", out var e) ? e : default;
+                return new PsnSummary
+                {
+                    Level = Level(r, "trophyLevel"),
+                    Platinum = Int(earned, "platinum"),
+                    Gold = Int(earned, "gold"),
+                    Silver = Int(earned, "silver"),
+                    Bronze = Int(earned, "bronze"),
+                };
+            }
+        }
+
+        /// <summary>The PSN trophy level comes back as a number on some accounts and a string on others.</summary>
+        private static int Level(JsonElement e, string name)
+        {
+            if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v))
+                return 0;
+            if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i))
+                return i;
+            if (v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), out var s))
+                return s;
+            return 0;
         }
 
         /// <summary>One PS3 game's trophies: definitions (name/detail/icon/type) merged with this account's

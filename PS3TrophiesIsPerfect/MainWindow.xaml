@@ -220,20 +220,93 @@
               Style="{StaticResource ToolIcon}"
               Visibility="{Binding NoMyUser, Converter={StaticResource B2V}}"
             />
-            <TextBlock Text="{Binding AccountChipText}" VerticalAlignment="Center" />
+            <StackPanel VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding AccountChipText}" VerticalAlignment="Center" />
+                <Border
+                  Visibility="{Binding HasPsnSummary, Converter={StaticResource B2V}}"
+                  Background="#16294A"
+                  CornerRadius="4"
+                  Padding="5,0"
+                  Margin="6,0,0,0"
+                  VerticalAlignment="Center"
+                >
+                  <TextBlock
+                    Text="{Binding PsnLevelText}"
+                    Foreground="{StaticResource Accent}"
+                    FontSize="10"
+                    FontWeight="SemiBold"
+                  />
+                </Border>
+              </StackPanel>
+              <StackPanel
+                Orientation="Horizontal"
+                Margin="0,2,0,0"
+                Visibility="{Binding HasPsnSummary, Converter={StaticResource B2V}}"
+              >
+                <Image
+                  Source="pack://application:,,,/Assets/TrophyTypes/plat.png"
+                  Width="12"
+                  Height="12"
+                />
+                <TextBlock
+                  Text="{Binding PsnPlat}"
+                  FontSize="10"
+                  Foreground="{StaticResource TextMuted}"
+                  Margin="3,0,8,0"
+                  VerticalAlignment="Center"
+                />
+                <Image
+                  Source="pack://application:,,,/Assets/TrophyTypes/gold.png"
+                  Width="12"
+                  Height="12"
+                />
+                <TextBlock
+                  Text="{Binding PsnGold}"
+                  FontSize="10"
+                  Foreground="{StaticResource TextMuted}"
+                  Margin="3,0,8,0"
+                  VerticalAlignment="Center"
+                />
+                <Image
+                  Source="pack://application:,,,/Assets/TrophyTypes/silver.png"
+                  Width="12"
+                  Height="12"
+                />
+                <TextBlock
+                  Text="{Binding PsnSilver}"
+                  FontSize="10"
+                  Foreground="{StaticResource TextMuted}"
+                  Margin="3,0,8,0"
+                  VerticalAlignment="Center"
+                />
+                <Image
+                  Source="pack://application:,,,/Assets/TrophyTypes/bronze.png"
+                  Width="12"
+                  Height="12"
+                />
+                <TextBlock
+                  Text="{Binding PsnBronze}"
+                  FontSize="10"
+                  Foreground="{StaticResource TextMuted}"
+                  Margin="3,0,0,0"
+                  VerticalAlignment="Center"
+                />
+              </StackPanel>
+            </StackPanel>
           </StackPanel>
         </Button>
         <TextBox
           x:Name="FilterBox"
           DockPanel.Dock="Right"
-          Width="220"
+          Width="170"
           VerticalAlignment="Center"
           Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
-          ui:ControlHelper.PlaceholderText="Filter trophies… (Ctrl+F)"
+          ui:ControlHelper.PlaceholderText="Filter trophies…"
         />
         <ComboBox
           DockPanel.Dock="Right"
-          Width="150"
+          Width="130"
           VerticalAlignment="Center"
           Margin="0,0,8,0"
           ItemsSource="{Binding Profiles}"

@@ -214,6 +214,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             MyAvatarUrl = Settings.MyAvatarUrl ?? "";
             LoadProfiles();
             RebuildRecents();
+            _ = LoadPsnSummaryAsync();
             if (!string.IsNullOrEmpty(Settings.LastFolder) && Directory.Exists(Settings.LastFolder))
                 await OpenPath(Settings.LastFolder);
             if (Settings.Donor != null && Settings.Donor.Count > 0)

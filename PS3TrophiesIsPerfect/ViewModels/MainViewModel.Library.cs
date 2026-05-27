@@ -371,6 +371,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
             {
                 await Task.Run(() => Psn.SignIn(npsso));
                 IsBusy = false;
+                _ = LoadPsnSummaryAsync();
                 return true;
             }
             catch (Exception ex)

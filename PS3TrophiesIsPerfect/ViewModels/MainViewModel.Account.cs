@@ -33,6 +33,71 @@ namespace PS3TrophiesIsPerfect.ViewModels
             set => Set(ref _myAvatarUrl, value);
         }
 
+        // ---- Overall PSN standing (level + total trophies across all platforms), for the profile chip ----
+        private int _psnLevel;
+        public int PsnLevel
+        {
+            get => _psnLevel;
+            set
+            {
+                Set(ref _psnLevel, value);
+                Raise(nameof(PsnLevelText));
+            }
+        }
+        public string PsnLevelText => "Lv " + _psnLevel;
+
+        private int _psnPlat;
+        public int PsnPlat
+        {
+            get => _psnPlat;
+            set => Set(ref _psnPlat, value);
+        }
+        private int _psnGold;
+        public int PsnGold
+        {
+            get => _psnGold;
+            set => Set(ref _psnGold, value);
+        }
+        private int _psnSilver;
+        public int PsnSilver
+        {
+            get => _psnSilver;
+            set => Set(ref _psnSilver, value);
+        }
+        private int _psnBronze;
+        public int PsnBronze
+        {
+            get => _psnBronze;
+            set => Set(ref _psnBronze, value);
+        }
+
+        private bool _hasPsnSummary;
+        public bool HasPsnSummary
+        {
+            get => _hasPsnSummary;
+            set => Set(ref _hasPsnSummary, value);
+        }
+
+        /// <summary>Loads the account's overall trophy level + totals (passive — no prompt if not linked).</summary>
+        public async Task LoadPsnSummaryAsync()
+        {
+            if (!Psn.HasCredentials)
+                return;
+            try
+            {
+                var s = await Task.Run(() => Psn.GetTrophySummary());
+                PsnLevel = s.Level;
+                PsnPlat = s.Platinum;
+                PsnGold = s.Gold;
+                PsnSilver = s.Silver;
+                PsnBronze = s.Bronze;
+                HasPsnSummary = s.Level > 0 || s.Total > 0;
+            }
+            catch
+            { /* passive display — leave the stats hidden if it fails */
+            }
+        }
+
         private async Task SetMyUserAsync()
         {
             string user = await Modern.PromptText(
