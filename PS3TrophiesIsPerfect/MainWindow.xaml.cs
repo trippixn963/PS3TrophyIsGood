@@ -3,12 +3,9 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Media;
 using PS3TrophiesIsPerfect.Dialogs;
-using PS3TrophiesIsPerfect.Models;
 using PS3TrophiesIsPerfect.Services;
 using PS3TrophiesIsPerfect.ViewModels;
 
@@ -88,43 +85,6 @@ namespace PS3TrophiesIsPerfect
             }
             FlareSolverr.Stop();
             base.OnClosing(e);
-        }
-
-        // --- list interactions ---
-        private async void Grid_DoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (Grid.SelectedItem is TrophyRow row)
-                await Vm.EditRow(row);
-        }
-
-        private void GamesGrid_DoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (GamesGrid.SelectedItem is GameProgress g && !string.IsNullOrEmpty(g.Url))
-            {
-                try { System.Diagnostics.Process.Start(g.Url); }
-                catch { /* no browser / blocked */ }
-            }
-        }
-
-        private void Grid_RightDown(object sender, MouseButtonEventArgs e)
-        {
-            DependencyObject dep = e.OriginalSource as DependencyObject;
-            while (dep != null && !(dep is DataGridRow))
-                dep = VisualTreeHelper.GetParent(dep);
-            if (dep is DataGridRow row)
-                row.IsSelected = true;
-        }
-
-        private async void Ctx_Edit(object sender, RoutedEventArgs e)
-        {
-            if (Grid.SelectedItem is TrophyRow row)
-                await Vm.EditRow(row);
-        }
-
-        private async void Ctx_Lock(object sender, RoutedEventArgs e)
-        {
-            if (Grid.SelectedItem is TrophyRow row)
-                await Vm.LockRow(row);
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
