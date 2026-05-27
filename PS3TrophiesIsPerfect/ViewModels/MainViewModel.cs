@@ -50,10 +50,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public string DonorAvatarUrl { get => _donorAvatarUrl; set => Set(ref _donorAvatarUrl, value); }
 
         private string _myPsnUser = "";
-        public string MyPsnUser { get => _myPsnUser; set { Set(ref _myPsnUser, value); Raise(nameof(HasMyUser)); Raise(nameof(NoMyUser)); Raise(nameof(MyUserDisplay)); } }
+        public string MyPsnUser { get => _myPsnUser; set { Set(ref _myPsnUser, value); Raise(nameof(HasMyUser)); Raise(nameof(NoMyUser)); Raise(nameof(MyUserDisplay)); Raise(nameof(AccountChipText)); } }
         public bool HasMyUser => !string.IsNullOrWhiteSpace(_myPsnUser);
         public bool NoMyUser => !HasMyUser;
         public string MyUserDisplay => HasMyUser ? _myPsnUser : "You";
+        public string AccountChipText => HasMyUser ? _myPsnUser : "Link PSN account";
 
         private string _myAvatarUrl = "";
         public string MyAvatarUrl { get => _myAvatarUrl; set => Set(ref _myAvatarUrl, value); }

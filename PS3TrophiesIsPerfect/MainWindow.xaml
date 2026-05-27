@@ -132,6 +132,25 @@
                     </StackPanel>
                 </Button>
 
+                <!-- Linked PSN account (avatar + name, persisted); click to set/change. -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0,0,8,0"
+                        Command="{Binding SetMyUserCommand}" ToolTip="Your linked PSN account — click to set or change">
+                    <StackPanel Orientation="Horizontal">
+                        <Grid Width="22" Height="22" Margin="0,0,8,0"
+                              Visibility="{Binding HasMyUser, Converter={StaticResource B2V}}">
+                            <Ellipse Fill="#222222" />
+                            <Ellipse>
+                                <Ellipse.Fill>
+                                    <ImageBrush ImageSource="{Binding MyAvatarUrl}" Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+                        </Grid>
+                        <ui:FontIcon Glyph="&#xE77B;" FontSize="15" Margin="0,0,6,0"
+                                     Visibility="{Binding NoMyUser, Converter={StaticResource B2V}}" />
+                        <TextBlock Text="{Binding AccountChipText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
                 <TextBox x:Name="FilterBox" DockPanel.Dock="Right" Width="220" VerticalAlignment="Center"
                          Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
                          ui:ControlHelper.PlaceholderText="Filter trophies… (Ctrl+F)" />
