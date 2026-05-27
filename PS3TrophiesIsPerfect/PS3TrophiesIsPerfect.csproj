@@ -8,6 +8,7 @@
     <AssemblyName>PS3TrophiesIsPerfect</AssemblyName>
     <Product>PS3TrophiesIsPerfect</Product>
     <AssemblyTitle>PS3TrophiesIsPerfect</AssemblyTitle>
+    <Version>1.0.0</Version>
     <LangVersion>latest</LangVersion>
     <!-- For the native folder-browser dialog (System.Windows.Forms.FolderBrowserDialog). -->
     <UseWindowsForms>true</UseWindowsForms>
