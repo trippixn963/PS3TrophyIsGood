@@ -24,6 +24,11 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private List<GameProgress> _allMyGames = new List<GameProgress>();
         private List<TrophyDetail> _allTrophies = new List<TrophyDetail>();
 
+        // Per-game trophy lists, cached for the session so re-opening a game is instant — no PSN re-fetch,
+        // and the icons are already loaded on the cached objects.
+        private readonly Dictionary<string, List<TrophyDetail>> _trophyCache =
+            new Dictionary<string, List<TrophyDetail>>();
+
         public ObservableCollection<GameProgress> MyGames { get; } =
             new ObservableCollection<GameProgress>();
         public ObservableCollection<TrophyDetail> GameTrophies { get; } =
@@ -261,6 +266,13 @@ namespace PS3TrophiesIsPerfect.ViewModels
             SelectedGame = game;
             GameTrophies.Clear();
 
+            // Re-opening a game is instant: reuse the cached list (icons already loaded on those objects).
+            if (game.GameId != null && _trophyCache.TryGetValue(game.GameId, out var hit))
+            {
+                ShowTrophies(hit, game.GameId);
+                return;
+            }
+
             IsBusy = true;
             BusyText = "Loading trophies for " + game.Name + "…";
             List<TrophyDetail> trophies;
@@ -299,13 +311,20 @@ namespace PS3TrophiesIsPerfect.ViewModels
             }
             IsBusy = false;
 
+            if (game.GameId != null)
+                _trophyCache[game.GameId] = trophies;
+            ShowTrophies(trophies, game.GameId);
+        }
+
+        private void ShowTrophies(List<TrophyDetail> trophies, string gameId)
+        {
             _allTrophies = trophies;
             _trophyShow = "All";
             Raise(nameof(TrophyShow));
             _trophyDetailSort = "Order";
             Raise(nameof(TrophyDetailSort));
             ApplyTrophyView();
-            StreamTrophyIcons(_allTrophies, game.GameId);
+            StreamTrophyIcons(_allTrophies, gameId);
         }
 
         private void ApplyTrophyView()
