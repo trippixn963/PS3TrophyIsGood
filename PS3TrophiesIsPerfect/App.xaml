@@ -36,6 +36,38 @@
                 <Setter Property="Margin" Value="0,0,4,0" />
             </Style>
 
+            <!-- Custom window caption buttons (min / max-restore / close). Tag = hover colour. -->
+            <Style x:Key="CaptionButton" TargetType="Button">
+                <Setter Property="Width" Value="46" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Tag">
+                    <Setter.Value><SolidColorBrush Color="#2A2A2A" /></Setter.Value>
+                </Setter>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bg" Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bg" Property="Background"
+                                            Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+                <Setter Property="Tag">
+                    <Setter.Value><SolidColorBrush Color="#C42B1C" /></Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Explicit dark header/cell styling so the grids stay readable regardless of ambient theme. -->
             <Style x:Key="DarkHeader" TargetType="DataGridColumnHeader">
                 <Setter Property="Background" Value="{StaticResource HeaderBg}" />

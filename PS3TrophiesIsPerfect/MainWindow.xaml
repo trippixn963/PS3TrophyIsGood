@@ -5,14 +5,20 @@
         xmlns:vm="clr-namespace:PS3TrophiesIsPerfect.ViewModels"
         xmlns:controls="clr-namespace:PS3TrophiesIsPerfect.Controls"
         xmlns:views="clr-namespace:PS3TrophiesIsPerfect.Views"
-        ui:WindowHelper.UseModernWindowStyle="True"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="{Binding WindowTitle}"
+        WindowStyle="None"
         Width="1180" Height="760" MinWidth="900" MinHeight="560"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         PreviewKeyDown="Window_PreviewKeyDown"
         Background="{StaticResource Surface}"
         TextElement.Foreground="{DynamicResource SystemControlPageTextBaseHighBrush}"
         FontFamily="Segoe UI">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="32" ResizeBorderThickness="6"
+                            CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
 
     <Window.DataContext>
         <vm:MainViewModel />
@@ -24,15 +30,39 @@
         <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
     </Window.InputBindings>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
+            <RowDefinition Height="32" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <!-- Custom title bar -->
+        <Border Grid.Row="0" Background="{StaticResource HeaderBg}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                    <ui:FontIcon Glyph="&#xE735;" FontSize="14" Foreground="{StaticResource Accent}" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding WindowTitle}" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{StaticResource Text}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource CaptionButton}" Click="Min_Click" ToolTip="Minimize">
+                        <ui:FontIcon Glyph="&#xE921;" FontSize="10" />
+                    </Button>
+                    <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Click="MaxRestore_Click" ToolTip="Maximize">
+                        <ui:FontIcon x:Name="MaxIcon" Glyph="&#xE922;" FontSize="10" />
+                    </Button>
+                    <Button Style="{StaticResource CloseButton}" Click="Close_Click" ToolTip="Close">
+                        <ui:FontIcon Glyph="&#xE8BB;" FontSize="10" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Toolbar -->
-        <Border Grid.Row="0" Background="{StaticResource Card}" Padding="10,6"
+        <Border Grid.Row="1" Background="{StaticResource Card}" Padding="10,6"
                 BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="False">
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding OpenCommand}"
@@ -107,7 +137,7 @@
         </Border>
 
         <!-- Hero header -->
-        <Border Grid.Row="1" Margin="16,16,16,8" Padding="18" CornerRadius="12"
+        <Border Grid.Row="2" Margin="16,16,16,8" Padding="18" CornerRadius="12"
                 Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -136,7 +166,7 @@
         </Border>
 
         <!-- Tabs: trophies / comparison / library -->
-        <Grid Grid.Row="2" Margin="16,4,16,16">
+        <Grid Grid.Row="3" Margin="16,4,16,16">
             <TabControl SelectedIndex="{Binding SelectedTab}" Background="Transparent" BorderThickness="0" Padding="0">
                 <TabItem Header="Trophies">
                     <views:TrophiesView />
