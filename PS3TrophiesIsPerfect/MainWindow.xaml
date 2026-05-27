@@ -173,6 +173,17 @@
         <Button
           DockPanel.Dock="Left"
           Style="{StaticResource ToolButton}"
+          Command="{Binding CheckCommand}"
+          ToolTip="Scan the run for legitimacy red flags before you sync"
+        >
+          <StackPanel Orientation="Horizontal">
+            <ui:FontIcon Glyph="" Style="{StaticResource ToolIcon}" />
+            <TextBlock Text="Check" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button
+          DockPanel.Dock="Left"
+          Style="{StaticResource ToolButton}"
           Command="{Binding MyGamesCommand}"
           ToolTip="Fetch your PS3 games + completion from your linked PSNProfiles account"
         >

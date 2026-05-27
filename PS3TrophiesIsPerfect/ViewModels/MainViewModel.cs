@@ -156,6 +156,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
         public ICommand RefreshCommand { get; }
         public ICommand ScrapeCommand { get; }
         public ICommand RelocateCommand { get; }
+        public ICommand CheckCommand { get; }
         public ICommand ClearCommand { get; }
         public ICommand ClearDonorCommand { get; }
         public ICommand SetMyUserCommand { get; }
@@ -176,6 +177,10 @@ namespace PS3TrophiesIsPerfect.ViewModels
             RelocateCommand = new RelayCommand(
                 async () => await RelocateAsync(),
                 () => _doc.IsOpen && HasDonor && !IsBusy
+            );
+            CheckCommand = new RelayCommand(
+                async () => await RunCheckAsync(),
+                () => _doc.IsOpen && !IsBusy
             );
             ClearCommand = new RelayCommand(
                 async () => await ClearAllAsync(),

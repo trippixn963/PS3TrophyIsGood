@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using ModernWpf.Controls;
 using ModernWpf.Controls.Primitives;
 
@@ -13,6 +16,112 @@ namespace PS3TrophiesIsPerfect.Dialogs
     /// </summary>
     public static class Modern
     {
+        /// <summary>Shows the pre-sync legitimacy report: a clean ✓ or a list of critical/warning issues.</summary>
+        public static async Task CheckReport(
+            bool clean,
+            IReadOnlyList<string> criticals,
+            IReadOnlyList<string> warnings
+        )
+        {
+            var panel = new StackPanel { MaxWidth = 480 };
+            if (clean)
+            {
+                panel.Children.Add(HeaderLine("", "#3FB950", "No legitimacy problems found."));
+                panel.Children.Add(
+                    new TextBlock
+                    {
+                        Text =
+                            "Nothing here would obviously trip a flag. You're still responsible for what "
+                            + "you sync — review the risks before doing so.",
+                        TextWrapping = TextWrapping.Wrap,
+                        Opacity = 0.7,
+                        Margin = new Thickness(0, 12, 0, 0),
+                    }
+                );
+            }
+            else
+            {
+                string summary =
+                    (criticals.Count > 0 ? criticals.Count + " critical" : "")
+                    + (criticals.Count > 0 && warnings.Count > 0 ? ", " : "")
+                    + (
+                        warnings.Count > 0
+                            ? warnings.Count + " warning" + (warnings.Count == 1 ? "" : "s")
+                            : ""
+                    );
+                panel.Children.Add(
+                    HeaderLine("", criticals.Count > 0 ? "#F85149" : "#E3B341", summary + " found")
+                );
+                foreach (var c in criticals)
+                    panel.Children.Add(IssueLine("#F85149", c));
+                foreach (var w in warnings)
+                    panel.Children.Add(IssueLine("#E3B341", w));
+            }
+
+            await new ContentDialog
+            {
+                Title = "Legitimacy check",
+                Content = panel,
+                CloseButtonText = "Close",
+            }.ShowAsync();
+        }
+
+        private static StackPanel HeaderLine(string glyph, string hex, string text)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(
+                new FontIcon
+                {
+                    Glyph = glyph,
+                    Foreground = HexBrush(hex),
+                    FontSize = 18,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                }
+            );
+            row.Children.Add(
+                new TextBlock
+                {
+                    Text = text,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 15,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }
+            );
+            return row;
+        }
+
+        private static StackPanel IssueLine(string hex, string text)
+        {
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 10, 0, 0),
+            };
+            row.Children.Add(
+                new Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Fill = HexBrush(hex),
+                    Margin = new Thickness(0, 6, 10, 0),
+                    VerticalAlignment = VerticalAlignment.Top,
+                }
+            );
+            row.Children.Add(
+                new TextBlock
+                {
+                    Text = text,
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 440,
+                }
+            );
+            return row;
+        }
+
+        private static Brush HexBrush(string hex) =>
+            new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+
         public static async Task Info(string message, string title = "PS3TrophiesIsPerfect")
         {
             await new ContentDialog
