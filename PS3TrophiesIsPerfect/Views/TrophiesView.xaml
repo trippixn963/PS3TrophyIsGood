@@ -28,13 +28,11 @@
                     <ItemsControl ItemsSource="{Binding Trophies}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="10" BorderBrush="{StaticResource CardBorder}"
-                                        BorderThickness="1" Margin="0,0,0,8" Padding="10" Cursor="Hand"
+                                <Border Margin="0,0,0,8" Padding="10" Cursor="Hand"
                                         Opacity="{Binding RowOpacity}"
                                         ToolTip="Double-click to set / change time · right-click for more">
                                     <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#1C1C1C" />
+                                        <Style TargetType="Border" BasedOn="{StaticResource CardHover}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Synced}" Value="True">
                                                     <Setter Property="Background" Value="#3A2026" />
@@ -60,8 +58,8 @@
                                         <Grid Grid.Column="0">
                                             <Border Width="54" Height="54" CornerRadius="6"
                                                     Background="#10FFFFFF" ClipToBounds="True">
-                                                <Image Source="{Binding Display}" Stretch="UniformToFill"
-                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <Image Source="{Binding Display, NotifyOnTargetUpdated=True}" Stretch="UniformToFill"
+                                                       Style="{StaticResource FadeImage}" />
                                             </Border>
                                             <Image Source="{Binding TypeBadge}" Width="20" Height="20"
                                                    HorizontalAlignment="Right" VerticalAlignment="Bottom"

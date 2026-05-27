@@ -64,6 +64,21 @@ namespace PS3TrophiesIsPerfect.ViewModels
         private bool _isBusy;
         public bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
 
+        // A brief, non-blocking confirmation that fades in at the bottom (replaces modal "Saved." popups).
+        private string _toastText = "";
+        public string ToastText { get => _toastText; set => Set(ref _toastText, value); }
+        private bool _toastVisible;
+        public bool ToastVisible { get => _toastVisible; set => Set(ref _toastVisible, value); }
+        private int _toastSeq;
+        public async void ShowToast(string message)
+        {
+            ToastText = message;
+            ToastVisible = true;
+            int seq = ++_toastSeq;
+            await Task.Delay(2600);
+            if (seq == _toastSeq) ToastVisible = false;
+        }
+
         private string _busyText = "Working…";
         public string BusyText { get => _busyText; set => Set(ref _busyText, value); }
 
@@ -173,7 +188,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 await Task.Run(() => _doc.Save(profile));
                 SetDirty(false);
                 IsBusy = false;
-                if (notify) await Modern.Info("Saved.");
+                if (notify) ShowToast("Saved");
             }
             catch (Exception ex)
             {

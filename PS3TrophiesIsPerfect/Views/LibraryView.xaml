@@ -30,8 +30,7 @@
                     <ItemsControl ItemsSource="{Binding MyGames}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="10" Background="#1C1C1C" BorderBrush="{StaticResource CardBorder}"
-                                        BorderThickness="1" Margin="0,0,0,8" Padding="10" Cursor="Hand"
+                                <Border Style="{StaticResource CardHover}" Margin="0,0,0,8" Padding="10" Cursor="Hand"
                                         ToolTip="Double-click to view trophies">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -44,8 +43,8 @@
                                                 Background="#10FFFFFF" ClipToBounds="True">
                                             <Grid>
                                                 <ui:FontIcon Glyph="&#xE7FC;" FontSize="22" Foreground="{StaticResource TextMuted}" />
-                                                <Image Source="{Binding Icon}" Stretch="UniformToFill"
-                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <Image Source="{Binding Icon, NotifyOnTargetUpdated=True}" Stretch="UniformToFill"
+                                                       Style="{StaticResource FadeImage}" />
                                             </Grid>
                                         </Border>
 
@@ -118,8 +117,8 @@
 
                         <Border Grid.Column="1" Width="84" Height="48" CornerRadius="6"
                                 Background="#10FFFFFF" ClipToBounds="True" VerticalAlignment="Center">
-                            <Image Source="{Binding SelectedGame.Icon}" Stretch="UniformToFill"
-                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <Image Source="{Binding SelectedGame.Icon, NotifyOnTargetUpdated=True}" Stretch="UniformToFill"
+                                   Style="{StaticResource FadeImage}" />
                         </Border>
 
                         <StackPanel Grid.Column="2" Margin="14,0" VerticalAlignment="Center">
@@ -187,8 +186,8 @@
                                         <Grid Grid.Column="0">
                                             <Border Width="60" Height="60" CornerRadius="6"
                                                     Background="#10FFFFFF" ClipToBounds="True">
-                                                <Image Source="{Binding Icon}" Stretch="UniformToFill"
-                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <Image Source="{Binding Icon, NotifyOnTargetUpdated=True}" Stretch="UniformToFill"
+                                                       Style="{StaticResource FadeImage}" />
                                             </Border>
                                             <Image Source="{Binding TypeBadge}" Width="22" Height="22"
                                                    HorizontalAlignment="Right" VerticalAlignment="Bottom"

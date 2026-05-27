@@ -187,6 +187,40 @@
                     <TextBlock Text="{Binding BusyText}" Margin="0,16,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
+
+            <!-- Toast: brief, non-blocking confirmation -->
+            <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,28"
+                    Background="#F0202020" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,11" IsHitTestVisible="False">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Opacity" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ToastVisible}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.45" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon Glyph="&#xE73E;" FontSize="14" Foreground="{StaticResource Accent}" />
+                    <TextBlock Text="{Binding ToastText}" Margin="10,0,0,0" Foreground="{StaticResource Text}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>
