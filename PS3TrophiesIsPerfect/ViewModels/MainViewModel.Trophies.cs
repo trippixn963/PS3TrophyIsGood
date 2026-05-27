@@ -8,7 +8,7 @@ using PS3TrophiesIsPerfect.Models;
 
 namespace PS3TrophiesIsPerfect.ViewModels
 {
-    // The trophy grid: the projected rows, the name filter, and per-trophy edits.
+    // The trophy list: the projected rows, the sort/filter, and per-trophy edits.
     public sealed partial class MainViewModel
     {
         private List<TrophyRow> _allRows = new List<TrophyRow>();

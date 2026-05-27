@@ -12,7 +12,7 @@ namespace PS3TrophiesIsPerfect.ViewModels
     /// <summary>
     /// The window's view model. Split across partial files by concern:
     ///   MainViewModel.cs            — shell: document, open/save/refresh, hero, busy, profiles, commands
-    ///   MainViewModel.Trophies.cs   — the trophy grid (rows, filter, edit/lock)
+    ///   MainViewModel.Trophies.cs   — the trophy list (rows, sort/filter, edit/lock)
     ///   MainViewModel.Scrape.cs     — the PSNProfiles "Copy from" workflow
     ///   MainViewModel.Comparison.cs — the donor-vs-you comparison
     ///   MainViewModel.Library.cs    — "My PS3 Games"
