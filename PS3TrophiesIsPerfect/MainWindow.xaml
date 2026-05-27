@@ -43,9 +43,9 @@
         <Border Grid.Row="0" Background="{StaticResource HeaderBg}" BorderThickness="0,0,0,2">
             <Border.BorderBrush>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#2A8BFF" Offset="0" />
-                    <GradientStop Color="#5FA8FF" Offset="0.22" />
-                    <GradientStop Color="#0061C2" Offset="0.55" />
+                    <GradientStop Color="#0188F5" Offset="0" />
+                    <GradientStop Color="#4FAAFF" Offset="0.22" />
+                    <GradientStop Color="#015FB0" Offset="0.55" />
                     <GradientStop Color="#0008090C" Offset="1" />
                 </LinearGradientBrush>
             </Border.BorderBrush>
@@ -78,49 +78,49 @@
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding OpenCommand}"
                         ToolTip="Open a trophy folder (Ctrl+O)">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE8E5;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE8E5;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Open" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding ScrapeCommand}"
                         ToolTip="Scrape unlock times from a PSNProfiles page">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE896;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE896;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Copy from PSNProfiles" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding RelocateCommand}"
                         ToolTip="Re-roll the cloned run as night sessions from a new start date (no re-scrape)">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE787;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE787;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Relocate" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding SaveCommand}"
                         ToolTip="Save changes back to the trophy folder (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE74E;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE74E;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Save" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding RefreshCommand}"
                         ToolTip="Reload the trophy list (F5)">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE72C;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE72C;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Refresh" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding ClearCommand}"
                         ToolTip="Lock every trophy (clear all unlock times)">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE74D;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE74D;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="Clear" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding MyGamesCommand}"
                         ToolTip="Fetch your PS3 games + completion from your linked PSNProfiles account">
                     <StackPanel Orientation="Horizontal">
-                        <ui:FontIcon Glyph="&#xE7FC;" FontSize="16" Margin="0,0,8,0" />
+                        <ui:FontIcon Glyph="&#xE7FC;" Style="{StaticResource ToolIcon}" />
                         <TextBlock Text="My PS3 Games" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
@@ -138,7 +138,7 @@
                                 </Ellipse.Fill>
                             </Ellipse>
                         </Grid>
-                        <ui:FontIcon Glyph="&#xE77B;" FontSize="15" Margin="0,0,6,0"
+                        <ui:FontIcon Glyph="&#xE77B;" Style="{StaticResource ToolIcon}"
                                      Visibility="{Binding NoMyUser, Converter={StaticResource B2V}}" />
                         <TextBlock Text="{Binding AccountChipText}" VerticalAlignment="Center" />
                     </StackPanel>

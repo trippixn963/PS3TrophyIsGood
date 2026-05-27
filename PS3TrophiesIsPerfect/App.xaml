@@ -10,9 +10,9 @@
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Brand palette (P3P: vivid electric blue + chrome over deep OLED black, matching the banner). -->
-            <SolidColorBrush x:Key="Accent" Color="#2A8BFF" />
-            <SolidColorBrush x:Key="AccentGlow" Color="#5FA8FF" />
+            <!-- Brand palette — Accent is the EXACT logo blue (sampled from the P3P mark). -->
+            <SolidColorBrush x:Key="Accent" Color="#0188F5" />
+            <SolidColorBrush x:Key="AccentGlow" Color="#4FAAFF" />
             <SolidColorBrush x:Key="Surface" Color="#08090C" />
             <SolidColorBrush x:Key="Card" Color="#13151A" />
             <SolidColorBrush x:Key="CardBorder" Color="#23272F" />
@@ -35,6 +35,13 @@
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="12,7" />
                 <Setter Property="Margin" Value="0,0,4,0" />
+            </Style>
+
+            <!-- Toolbar button icons in the brand blue (matches the banner's blue feature icons). -->
+            <Style x:Key="ToolIcon" TargetType="ui:FontIcon">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                <Setter Property="Margin" Value="0,0,8,0" />
             </Style>
 
             <!-- Custom window caption buttons (min / max-restore / close). Tag = hover colour. -->

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Windows;
+using System.Windows.Media;
 
 namespace PS3TrophiesIsPerfect
 {
@@ -9,6 +10,10 @@ namespace PS3TrophiesIsPerfect
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Make ModernWpf's own accent (tab indicator, progress ring, combo/focus highlights) the logo blue.
+            try { ModernWpf.ThemeManager.Current.AccentColor = (Color)ColorConverter.ConvertFromString("#0188F5"); }
+            catch { /* fall back to the default accent */ }
+
             // pfdtool\, flaresolverr\ and profiles\ are resolved relative to the working directory.
             // Pin it to the exe's own folder so the app works no matter how it was launched (Explorer
             // hand-off, a shortcut, a parent process, etc.) instead of only when started from the folder.
