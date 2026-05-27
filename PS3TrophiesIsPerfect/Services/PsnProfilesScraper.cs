@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using PS3TrophiesIsPerfect.Models;
@@ -45,7 +46,8 @@ namespace PS3TrophiesIsPerfect.Services
         /// </summary>
         public static List<GameProgress> FetchPs3Games(string user)
         {
-            string html = FetchViaFlareSolverr("https://psnprofiles.com/" + user.Trim());
+            var fetched = Fetch("https://psnprofiles.com/" + user.Trim());
+            string html = fetched.Html;
 
             var tableM = Regex.Match(html, "id=\"gamesTable\".*?</table>", RegexOptions.Singleline);
             string table = tableM.Success ? tableM.Value : html;
@@ -58,27 +60,42 @@ namespace PS3TrophiesIsPerfect.Services
                     continue;
 
                 var titleM = Regex.Match(r,
-                    "<a[^>]*class=\"title\"[^>]*href=\"(/trophies/[^\"]*)\"[^>]*>(.*?)</a>",
+                    "<a[^>]*class=\"title\"[^>]*href=\"(/trophies/(\\d+)[^\"]*)\"[^>]*>(.*?)</a>",
                     RegexOptions.Singleline | RegexOptions.IgnoreCase);
                 if (!titleM.Success)
                     continue;
 
-                string name = StripHtml(titleM.Groups[2].Value);
+                string name = StripHtml(titleM.Groups[3].Value);
                 if (string.IsNullOrWhiteSpace(name))
                     continue;
+                string gameId = titleM.Groups[2].Value;
 
-                var iconM = Regex.Match(r, "https://img\\.psnprofiles\\.com/game/[^\\s\"'<>]+?\\.(?:png|jpg)", RegexOptions.IgnoreCase);
-                var countM = Regex.Match(r, "<b>(\\d+)</b>\\s*of\\s*<b>(\\d+)</b>", RegexOptions.IgnoreCase);
-                int earned = countM.Success ? int.Parse(countM.Groups[1].Value) : 0;
-                int total = countM.Success ? int.Parse(countM.Groups[2].Value) : 0;
+                // Trophy count: in-progress shows "<b>7</b> of <b>14</b>"; completed shows "All <b>51</b>".
+                int earned, total;
+                var ofM = Regex.Match(r, "<b>(\\d+)</b>\\s*of\\s*<b>(\\d+)</b>", RegexOptions.IgnoreCase);
+                if (ofM.Success) { earned = int.Parse(ofM.Groups[1].Value); total = int.Parse(ofM.Groups[2].Value); }
+                else
+                {
+                    var allM = Regex.Match(r, "All\\s*<b>(\\d+)</b>", RegexOptions.IgnoreCase);
+                    total = allM.Success ? int.Parse(allM.Groups[1].Value) : 0;
+                    earned = total; // "All N" = fully earned
+                }
+
                 var pctM = Regex.Match(r, "class=\"progress-bar\">\\s*<span>(\\d+)%", RegexOptions.IgnoreCase);
                 int pct = pctM.Success ? int.Parse(pctM.Groups[1].Value) : (total > 0 ? earned * 100 / total : 0);
+
+                // Prefer the medium game image; fall back to the small one. Stop at comma (srcset) / quote.
+                var iconM = Regex.Match(r, "https://img\\.psnprofiles\\.com/game/m/\\d+/[^\\s\"',<>]+", RegexOptions.IgnoreCase);
+                if (!iconM.Success)
+                    iconM = Regex.Match(r, "https://img\\.psnprofiles\\.com/game/s/\\d+/[^\\s\"',<>]+", RegexOptions.IgnoreCase);
+                string iconUrl = iconM.Success ? iconM.Value : null;
 
                 games.Add(new GameProgress
                 {
                     Name = name,
                     Url = "https://psnprofiles.com" + titleM.Groups[1].Value,
-                    IconUrl = iconM.Success ? iconM.Value : null,
+                    IconUrl = iconUrl,
+                    Icon = CachedImage(iconUrl, gameId, fetched.Cookie, fetched.Ua),
                     Earned = earned,
                     Total = total,
                     Percent = pct,
@@ -134,7 +151,13 @@ namespace PS3TrophiesIsPerfect.Services
             return new ScrapeResult { Trophies = results, AvatarUrl = ExtractAvatar(html) };
         }
 
-        private static string FetchViaFlareSolverr(string targetUrl)
+        /// <summary>A FlareSolverr fetch: the page HTML plus the Cloudflare cookie + UA, which are needed
+        /// to then download Cloudflare-protected images (game banners) directly.</summary>
+        private sealed class Fetched { public string Html; public string Cookie; public string Ua; }
+
+        private static string FetchViaFlareSolverr(string targetUrl) => Fetch(targetUrl).Html;
+
+        private static Fetched Fetch(string targetUrl)
         {
             // Give an auto-started FlareSolverr time to come up before the first request.
             Utility.servingReady.WaitOne(TimeSpan.FromSeconds(60));
@@ -149,8 +172,19 @@ namespace PS3TrophiesIsPerfect.Services
                     client.Headers.Add("Content-Type", "application/json");
                     client.Encoding = System.Text.Encoding.UTF8;
                     string response = client.UploadString("http://localhost:8191/v1", jsonPayload);
-                    var json = System.Text.Json.JsonDocument.Parse(response);
-                    return json.RootElement.GetProperty("solution").GetProperty("response").GetString();
+                    var sol = System.Text.Json.JsonDocument.Parse(response).RootElement.GetProperty("solution");
+
+                    var cookieParts = new List<string>();
+                    if (sol.TryGetProperty("cookies", out var cookies))
+                        foreach (var c in cookies.EnumerateArray())
+                            cookieParts.Add(c.GetProperty("name").GetString() + "=" + c.GetProperty("value").GetString());
+
+                    return new Fetched
+                    {
+                        Html = sol.GetProperty("response").GetString(),
+                        Cookie = string.Join("; ", cookieParts),
+                        Ua = sol.TryGetProperty("userAgent", out var ua) ? ua.GetString() : "",
+                    };
                 }
             }
             catch (WebException)
@@ -159,6 +193,32 @@ namespace PS3TrophiesIsPerfect.Services
                     "FlareSolverr isn't reachable on localhost:8191 (needed to get past PSNProfiles' "
                         + "Cloudflare). Start FlareSolverr and try again.");
             }
+        }
+
+        /// <summary>Downloads a Cloudflare-protected image (using the fetch's cookie + UA) and caches it
+        /// to %AppData%, returning a frozen ImageSource. Null on any failure.</summary>
+        private static System.Windows.Media.ImageSource CachedImage(string url, string cacheKey, string cookie, string ua)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            try
+            {
+                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "PS3TrophiesIsPerfect", "gamecache");
+                Directory.CreateDirectory(dir);
+                string file = Path.Combine(dir, cacheKey + ".png");
+                if (!File.Exists(file))
+                {
+                    using (var wc = new WebClient())
+                    {
+                        wc.Headers.Add("User-Agent", ua);
+                        wc.Headers.Add("Cookie", cookie);
+                        wc.Headers.Add("Referer", "https://psnprofiles.com/");
+                        wc.DownloadFile(url, file);
+                    }
+                }
+                return ImageLoad.FromFile(file);
+            }
+            catch { return null; }
         }
 
         private static string StripHtml(string fragment)
