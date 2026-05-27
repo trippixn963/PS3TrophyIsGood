@@ -79,6 +79,13 @@
                         <TextBlock Text="Copy from PSNProfiles" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
+                <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding RelocateCommand}"
+                        ToolTip="Re-roll the cloned run as night sessions from a new start date (no re-scrape)">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:FontIcon Glyph="&#xE787;" FontSize="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Relocate" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button DockPanel.Dock="Left" Style="{StaticResource ToolButton}" Command="{Binding SaveCommand}"
                         ToolTip="Save changes back to the trophy folder (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">

@@ -68,6 +68,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
             if (!times.Any(t => t != 0))
                 return;
 
+            bool relocated = false;
+            RelocationResult r = default;
             if (await Modern.Confirm(
                     "Rebuild this run as nightly play sessions from a start date through today, finishing " +
                     "with the platinum earned today?\n\nYes = pick the start date.   No = keep the scraped dates.",
@@ -76,11 +78,8 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 DateTime? start = await Modern.PromptDate("Start date — the first night of the run", DateTime.Today, showTime: false);
                 if (start != null)
                 {
-                    var r = _doc.RelocateToNightSessions(times, start.Value.Date);
-                    await Modern.Info(
-                        $"Rebuilt across {r.Sessions} session(s) — " + (r.PlatEarned ? "platinum" : "last trophy") +
-                        " earned just now.\n\nStarted:   " + r.First.ToString("yyyy/MM/dd  HH:mm:ss") +
-                        "\nFinished:  " + r.Last.ToString("yyyy/MM/dd  HH:mm:ss"), "Relocate to night sessions");
+                    r = _doc.RelocateToNightSessions(times, start.Value.Date);
+                    relocated = true;
                 }
             }
 
@@ -89,6 +88,44 @@ namespace PS3TrophiesIsPerfect.ViewModels
                 _doc.ApplyTimes(times);
                 SetDirty(true);
                 Refresh();
+                ShowToast(relocated
+                    ? $"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today"
+                    : $"Applied {matched} scraped trophies");
+            }
+            catch (Exception ex)
+            {
+                await Modern.Info(ex.Message, "Apply failed");
+            }
+        }
+
+        /// <summary>Re-runs (re-rolls) the night-session relocation on the already-scraped donor, with a
+        /// freshly chosen start date — no need to scrape the page again.</summary>
+        private async Task RelocateAsync()
+        {
+            if (!_doc.IsOpen || Settings.Donor == null || Settings.Donor.Count == 0)
+            {
+                await Modern.Info("Copy a donor's trophies from PSNProfiles first.", "Relocate");
+                return;
+            }
+
+            var scraped = Settings.Donor.Select(d => new ScrapedTrophy(d.Date, d.Name)).ToList();
+            long[] times = _doc.MatchScrape(scraped, out int matched, out _);
+            if (matched == 0 || !times.Any(t => t != 0))
+            {
+                await Modern.Info("None of the donor's trophies match the open game.", "Relocate");
+                return;
+            }
+
+            DateTime? start = await Modern.PromptDate("Start date — the first night of the run", DateTime.Today, showTime: false);
+            if (start == null) return;
+
+            var r = _doc.RelocateToNightSessions(times, start.Value.Date);
+            try
+            {
+                _doc.ApplyTimes(times);
+                SetDirty(true);
+                Refresh();
+                ShowToast($"Relocated: {r.Sessions} session(s), {(r.PlatEarned ? "platinum" : "last trophy")} today");
             }
             catch (Exception ex)
             {
